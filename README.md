@@ -143,10 +143,10 @@ Size each bucket to your annual spending needs and income bridge timeline. The b
 
 ## Running the Tool
 
-No installation required. Open `portfolio-backtest.html` in any modern browser (Chrome recommended). All computation runs client-side in JavaScript — no data leaves your machine.
+No installation required. Open `index.html` in any modern browser (Chrome recommended). All computation runs client-side in JavaScript — no data leaves your machine.
 
 ```bash
-open portfolio-backtest.html
+open index.html
 ```
 
 Chart rendering requires an internet connection to load Chart.js from the Cloudflare CDN (`cdnjs.cloudflare.com`). The optimizer and all calculations work offline; only the chart visualizations require the CDN.
