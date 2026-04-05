@@ -19,7 +19,7 @@ A self-contained browser tool for backtesting ETF portfolios, exploring the effi
 | XLE | Energy Select Sector SPDR | Energy producers · ~3.5% yield |
 | JEPI | JPMorgan Equity Premium Income ETF | Covered-call income · ~7% yield · **data starts 2020** |
 
-Annual total return data (dividends reinvested) covers **2012–2025**. 2025 is a partial-year estimate. JEPI launched May 2020; pre-2020 years are treated as 0% return.
+Monthly total return data (dividends reinvested) covers **Jan 2012–Dec 2025** — 168 monthly data points per ETF. 2025 reflects full-year actual returns. JEPI launched May 2020; returns before June 2020 are null (treated as 0% for portfolio math).
 
 ---
 
@@ -27,7 +27,7 @@ Annual total return data (dividends reinvested) covers **2012–2025**. 2025 is 
 
 ### 1. Backtest
 
-1. Set **Start Year** (2012–2020) in the top-left dropdown.
+1. Set **Start Month/Year** (Jan 2012–Dec 2020) using the month and year dropdowns.
 2. Allocate capital across ETFs using the dropdowns — each in $5K increments up to $100K.
 3. The **Total Allocated** badge turns green when allocations sum to exactly $100K.
 4. Click **↺ Reset to $10K** to reset all ETFs to $10K each ($100K total).
@@ -58,9 +58,9 @@ Where **w** is the risk tolerance slider:
 | 2.0 | Aggressive drawdown minimization |
 
 **Algorithm:**
-1. **Random sampling** — generates 2,000 random valid portfolios ($100K total, $1K steps) using Fisher-Yates shuffle to avoid allocation bias toward any single ETF.
+1. **Random sampling** — generates 800 random valid portfolios ($100K total, $1K steps) using Fisher-Yates shuffle to avoid allocation bias toward any single ETF.
 2. **Best seed selection** — finds the random portfolio with the highest score under the current w.
-3. **Hill-climbing** — runs 8,000 greedy swap iterations from the best seed, moving $1K between ETFs and keeping improvements.
+3. **Hill-climbing** — runs 3,000 greedy swap iterations from the best seed, moving $1K between ETFs and keeping improvements.
 
 **To use:**
 1. Set the risk slider to your preferred w value.
@@ -70,9 +70,9 @@ Where **w** is the risk tolerance slider:
 5. Click **Apply This Allocation ↑** to load the previewed allocation into the main backtest (rounded to nearest $5K).
 
 **Important caveats:**
-- The optimizer uses only the **selected start year** from the main dropdown. Results differ significantly between a 2012 start (13 years including the 2022 bear market) and a 2020 start (mostly bull market).
-- With only 10 ETFs and 14 years of data, the optimizer is prone to **overfitting**. Concentrated single-ETF results (e.g., 100% SMH at w=0) reflect historical dominance, not forward-looking confidence.
-- At w=0 the optimizer finds ~100% SMH (~19.2% CAGR). At w≥0.5 it converges to SCHD + VPU (~9.7% CAGR, ~3.1% max DD). There is a sharp cliff between these poles — this is a structural feature of the data, not a bug.
+- The optimizer uses only the **selected start month/year** from the main dropdowns. Results differ significantly between a Jan 2012 start (14 years including the 2022 bear market) and a Jan 2020 start (mostly bull market).
+- With only 10 ETFs and 168 months of data, the optimizer is prone to **overfitting**. Concentrated single-ETF results (e.g., 100% SMH at w=0) reflect historical dominance, not forward-looking confidence.
+- At w=0 the optimizer tends toward high-growth tech (SMH/QQQ/VGT). At w≥1.0 it converges toward defensive income names (SCHD, VPU). There is a sharp cliff between these poles — this is a structural feature of the data, not a bug.
 
 ---
 
@@ -94,7 +94,6 @@ Runs the full optimizer independently on each **5-year window** across the compl
 
 **Interpreting the results:**
 
-- A window showing **-0.0% max drawdown** means the optimizer found a combination where no year in that window produced a portfolio-level decline from peak. The score function's denominator floors at 0.01, inflating scores in these cases. Most common in bull-only windows and a known limitation of annual-data optimization.
 - **High instability (red)** for ETFs like XLE or SMH means regime-dependence — optimal in some environments, irrelevant in others. A high average allocation is not a signal to hold permanently.
 - **Low instability (green)** may mean consistently included or consistently excluded. Check the consistency card to distinguish the two cases.
 - The **2018–22 window** is the most analytically honest — it captures the full 2022 bear market, forcing a genuine return/drawdown tradeoff. The resulting allocation (heavy VPU + XLE + SCHD) is the closest analog to a defensive positioning template.
@@ -105,16 +104,16 @@ Runs the full optimizer independently on each **5-year window** across the compl
 ## Methodology Notes
 
 ### Return Data
-Annual total returns include price appreciation and dividends reinvested. Data is approximate and sourced from publicly available historical records. 2025 figures are partial-year estimates.
+Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. 168 monthly data points per ETF (Jan 2012–Dec 2025). 2025 figures are full-year actual returns.
 
 ### Max Drawdown
-Calculated as the maximum peak-to-trough decline in portfolio value across **annual snapshots**. Because the tool uses annual (not daily) data, intra-year drawdowns are not captured — actual realized drawdowns are typically larger than reported here. For example, SMH's intra-year 2022 low was significantly worse than the annual endpoint implies.
+Calculated as the maximum peak-to-trough decline in portfolio value across **monthly snapshots**. Because the tool uses monthly (not daily) data, intra-month drawdowns are not captured — actual realized drawdowns may be modestly larger than reported here. This is a significant improvement over annual data, which severely understated drawdowns by masking intra-year volatility.
 
 ### Score Function
 `CAGR / DD^w` is a simplified Calmar-like ratio. It is not a standard financial metric and has known pathological behavior when DD approaches zero. It is intended as an exploratory tool, not a rigorous risk-adjusted return measure.
 
 ### Overfitting Risk
-With 10 assets and 14 annual data points, the ratio of data to parameters is low. Concentrated outputs should be interpreted as "this worked historically in this sample" rather than "this will work going forward." The rolling window analysis partially addresses this by showing whether allocations are stable across regimes — an allocation that dominates every window has more evidence behind it than one that dominates only one.
+With 10 assets and 168 monthly data points (14 years), the ratio of data to parameters is reasonable but not large. Concentrated outputs should be interpreted as "this worked historically in this sample" rather than "this will work going forward." The rolling window analysis partially addresses this by showing whether allocations are stable across regimes — an allocation that dominates every window has more evidence behind it than one that dominates only one.
 
 ### What the Optimizer Does Not Know
 - Your retirement date or income requirements
