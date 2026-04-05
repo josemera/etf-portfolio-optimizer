@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portfolio Backtest</title>
+<title>Portfolio Backtest — Monthly</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,6 +17,7 @@
   .controls-top { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
   .control-group label { display: block; color: #9ca3af; font-size: 12px; margin-bottom: 4px; }
   select { background: #1f2937; color: #fff; border: 1px solid #374151; border-radius: 6px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+  .start-date-row { display: flex; gap: 4px; }
   .summary-stats { margin-left: auto; display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
   .stat { text-align: right; }
   .stat-label { color: #9ca3af; font-size: 11px; }
@@ -179,29 +180,39 @@
 <body>
 <div class="container">
   <h1>Portfolio Backtest</h1>
-  <p class="subtitle">Total return with dividends reinvested &middot; $100K total allocation</p>
+  <p class="subtitle">Total return with dividends reinvested &middot; $100K total allocation &middot; Monthly data</p>
 
   <!-- Warning banner for JEPI -->
   <div class="jepi-warn" id="jepiWarn">
-    ⚠ <strong>JEPI launched May 2020.</strong> For start years before 2020, JEPI's allocation earns 0% return (treated as cash) for the pre-2020 years. Consider setting JEPI to $0 or using a 2020+ start year for accurate JEPI analysis.
+    &#9888; <strong>JEPI launched May 2020.</strong> For start dates before June 2020, JEPI's allocation earns 0% return (treated as cash) for the pre-June-2020 months. Consider setting JEPI to $0 or using a June 2020+ start date for accurate JEPI analysis.
   </div>
 
   <!-- Controls -->
   <div class="controls">
     <div class="controls-top">
       <div class="control-group">
-        <label>Start Year</label>
-        <select id="startYear" onchange="onStartYearChange()">
-          <option value="2012">2012</option><option value="2013">2013</option>
-          <option value="2014">2014</option><option value="2015">2015</option>
-          <option value="2016">2016</option><option value="2017">2017</option>
-          <option value="2018">2018</option><option value="2019">2019</option>
-          <option value="2020">2020</option>
-        </select>
+        <label>Start Date</label>
+        <div class="start-date-row">
+          <select id="startMonth" onchange="onStartDateChange()">
+            <option value="1">Jan</option><option value="2">Feb</option>
+            <option value="3">Mar</option><option value="4">Apr</option>
+            <option value="5">May</option><option value="6">Jun</option>
+            <option value="7">Jul</option><option value="8">Aug</option>
+            <option value="9">Sep</option><option value="10">Oct</option>
+            <option value="11">Nov</option><option value="12">Dec</option>
+          </select>
+          <select id="startYear" onchange="onStartDateChange()">
+            <option value="2012">2012</option><option value="2013">2013</option>
+            <option value="2014">2014</option><option value="2015">2015</option>
+            <option value="2016">2016</option><option value="2017">2017</option>
+            <option value="2018">2018</option><option value="2019">2019</option>
+            <option value="2020">2020</option>
+          </select>
+        </div>
       </div>
       <div class="control-group">
         <label>&nbsp;</label>
-        <button class="reset-btn" onclick="resetAllocations()">↺ Reset to $10K</button>
+        <button class="reset-btn" onclick="resetAllocations()">&#8634; Reset to $10K</button>
       </div>
       <div class="summary-stats">
         <div class="stat">
@@ -210,15 +221,15 @@
         </div>
         <div class="stat">
           <div class="stat-label">Final Value</div>
-          <div class="stat-value green" id="statValue">—</div>
+          <div class="stat-value green" id="statValue">&mdash;</div>
         </div>
         <div class="stat">
           <div class="stat-label">Portfolio CAGR</div>
-          <div class="stat-value blue" id="statCagr">—</div>
+          <div class="stat-value blue" id="statCagr">&mdash;</div>
         </div>
         <div class="stat">
           <div class="stat-label">Max Drawdown</div>
-          <div class="stat-value" id="statDD" style="color:#f87171">—</div>
+          <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
         </div>
       </div>
     </div>
@@ -250,7 +261,7 @@
 
   <!-- Year-by-Year -->
   <div class="table-wrap">
-    <div class="table-title">Year-by-Year Portfolio Values</div>
+    <div class="table-title">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(December month-end)</span></div>
     <div class="scroll"><table>
       <thead id="ybyHead"></thead><tbody id="ybyBody"></tbody>
     </table></div>
@@ -260,12 +271,12 @@
 
   <!-- ══════════════════════ OPTIMIZER ══════════════════════ -->
   <div class="opt-panel">
-    <div class="opt-title">⚡ Portfolio Optimizer</div>
-    <div class="opt-desc">Finds the $100K allocation (in $1K steps) that maximizes CAGR / MaxDrawdown^w using 2,000 random samples + hill-climbing. Uses the selected start year.</div>
+    <div class="opt-title">&#9889; Portfolio Optimizer</div>
+    <div class="opt-desc">Finds the $100K allocation (in $1K steps) that maximizes CAGR / MaxDrawdown^w using 800 random samples + hill-climbing on monthly data. Uses the selected start date.</div>
     <div class="slider-row">
-      <span class="slider-label left-lbl">↑ Max Return</span>
+      <span class="slider-label left-lbl">&uarr; Max Return</span>
       <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
-      <span class="slider-label right-lbl">↓ Min Drawdown</span>
+      <span class="slider-label right-lbl">&darr; Min Drawdown</span>
       <span class="slider-val" id="sliderVal">Balanced (1.0)</span>
     </div>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
@@ -277,7 +288,7 @@
       <div class="frontier-wrap">
         <div style="color:#9ca3af;font-size:12px;font-weight:600;margin-bottom:10px;">Efficient Frontier</div>
         <canvas id="frontierChart" height="300" style="cursor:crosshair"></canvas>
-        <div class="frontier-hint">Click any dot to preview that allocation &nbsp;·&nbsp; ★ = hill-climb optimum</div>
+        <div class="frontier-hint">Click any dot to preview that allocation &nbsp;&middot;&nbsp; &#9733; = hill-climb optimum</div>
       </div>
       <div class="opt-result">
         <div class="opt-result-title">Optimal Allocation</div>
@@ -290,17 +301,17 @@
 
   <!-- ══════════════════ ROLLING WINDOW ══════════════════ -->
   <div class="opt-panel">
-    <div class="opt-title">📊 Rolling Window Optimizer</div>
-    <div class="opt-desc">Runs the optimizer on each 5-year window across 2012–2025 (10 windows). Uses full dataset regardless of start year dropdown. JEPI is excluded from rolling windows (insufficient pre-2020 history for meaningful 5-year analysis).</div>
+    <div class="opt-title">&#128202; Rolling Window Optimizer</div>
+    <div class="opt-desc">Runs the optimizer on each 5-year (60-month) window across 2012&ndash;2025 (10 windows, annual stepping). Monthly drawdown granularity. Uses full dataset regardless of start date. JEPI excluded.</div>
     <div class="slider-row">
-      <span class="slider-label left-lbl">↑ Max Return</span>
+      <span class="slider-label left-lbl">&uarr; Max Return</span>
       <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
-      <span class="slider-label right-lbl">↓ Min Drawdown</span>
+      <span class="slider-label right-lbl">&darr; Min Drawdown</span>
       <span class="slider-val" id="rwSliderVal">Balanced (1.0)</span>
     </div>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
       <button class="run-btn" id="rwRunBtn" onclick="runRollingOptimizer()">Run Rolling Analysis</button>
-      <span class="opt-status" id="rwStatus">10 windows × optimizer each — ~10–15 seconds.</span>
+      <span class="opt-status" id="rwStatus">10 windows &times; 60-month optimizer each.</span>
     </div>
     <div class="progress-bar" id="rwProgressBar"><div class="progress-fill" id="rwProgressFill" style="width:0%"></div></div>
 
@@ -317,7 +328,7 @@
         </div>
       </div>
       <div class="table-wrap" style="margin-top:16px">
-        <div class="table-title">Rolling Window Results — 5-Year Optimal Allocations</div>
+        <div class="table-title">Rolling Window Results &mdash; 5-Year (60-Month) Optimal Allocations</div>
         <div class="scroll"><table>
           <thead id="rwTableHead"></thead><tbody id="rwTableBody"></tbody>
         </table></div>
@@ -325,52 +336,225 @@
     </div>
   </div>
 
-  <p class="footnote">Annual total returns including dividends reinvested. 2025 is a partial-year estimate. JEPI launched May 2020 — pre-2020 returns treated as 0%. Past performance does not guarantee future results. Not financial advice.</p>
+  <p class="footnote">Monthly total returns including dividends reinvested (Jan 2012&ndash;Dec 2025). Data sourced from Yahoo Finance adjusted close prices. Past performance does not guarantee future results. Not financial advice.</p>
 </div>
 
 <script>
+// ══════════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════════
 const ETF_NAMES = {
-  SCHD: { name: "Schwab US Dividend Equity ETF",    sub: "Dividend growth · ~3.5% yield" },
-  VTI:  { name: "Vanguard Total Stock Market ETF",  sub: "Broad US market · ~1.3% yield" },
-  QQQ:  { name: "Invesco Nasdaq-100 ETF",           sub: "Top 100 Nasdaq · tech-heavy" },
-  IVV:  { name: "iShares Core S&P 500 ETF",         sub: "S&P 500 index · ~1.3% yield" },
-  VPU:  { name: "Vanguard Utilities ETF",           sub: "US utilities sector · ~3% yield" },
+  SCHD: { name: "Schwab US Dividend Equity ETF",    sub: "Dividend growth \u00b7 ~3.5% yield" },
+  VTI:  { name: "Vanguard Total Stock Market ETF",  sub: "Broad US market \u00b7 ~1.3% yield" },
+  QQQ:  { name: "Invesco Nasdaq-100 ETF",           sub: "Top 100 Nasdaq \u00b7 tech-heavy" },
+  IVV:  { name: "iShares Core S&P 500 ETF",         sub: "S&P 500 index \u00b7 ~1.3% yield" },
+  VPU:  { name: "Vanguard Utilities ETF",           sub: "US utilities sector \u00b7 ~3% yield" },
   IYF:  { name: "iShares US Financials ETF",        sub: "US financial sector" },
   SMH:  { name: "VanEck Semiconductor ETF",         sub: "Semiconductor industry" },
   VGT:  { name: "Vanguard Information Technology",  sub: "Pure US tech sector" },
-  XLE:  { name: "Energy Select Sector SPDR",        sub: "US energy producers · ~3.5% yield" },
-  JEPI: { name: "JPMorgan Equity Premium Income",   sub: "Covered call income · ~7% yield · since 2020" },
+  XLE:  { name: "Energy Select Sector SPDR",        sub: "US energy producers \u00b7 ~3.5% yield" },
+  JEPI: { name: "JPMorgan Equity Premium Income",   sub: "Covered call income \u00b7 ~7% yield \u00b7 since 2020" },
 };
-const TICKERS   = ["SCHD","VTI","QQQ","IVV","VPU","IYF","SMH","VGT","XLE","JEPI"];
-const COLORS    = {
+const TICKERS = ["SCHD","VTI","QQQ","IVV","VPU","IYF","SMH","VGT","XLE","JEPI"];
+const COLORS  = {
   SCHD:"#22c55e", VTI:"#3b82f6",  QQQ:"#a855f7",  IVV:"#06b6d4",
   VPU:"#f97316",  IYF:"#f59e0b",  SMH:"#ef4444",  VGT:"#8b5cf6",
   XLE:"#d97706",  JEPI:"#ec4899"
 };
-// null = ETF didn't exist yet (treated as 0% for that year)
-const ALL_YEARS = [2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
-const RETURNS   = {
-  SCHD: [10.8, 32.0, 13.4, -2.4, 17.9, 16.5,  -5.5, 28.2,  0.2, 29.1,  -3.2,  4.3, 11.5, -2.0],
-  VTI:  [16.4, 33.5, 12.6,  0.4, 12.7, 21.2,  -5.2, 30.7, 21.0, 25.7, -19.5, 26.1, 23.8, -2.5],
-  QQQ:  [18.1, 36.6, 19.1,  9.5,  7.1, 32.7,  -1.0, 39.0, 48.6, 27.4, -32.6, 54.9, 25.6, -5.0],
-  IVV:  [16.0, 32.4, 13.7,  1.4, 12.0, 21.8,  -4.4, 31.5, 18.4, 28.7, -18.2, 26.3, 24.9, -2.5],
-  VPU:  [ 1.1, 13.2, 29.0, -4.9, 16.3, 12.0,   4.2, 26.3, -2.7, 14.1,  -1.4, -9.0, 23.0,  4.0],
-  IYF:  [29.0, 36.4, 15.2, -1.1, 22.7, 22.2, -14.0, 32.2, -2.0, 35.0, -12.0, 12.0, 30.0, -1.0],
-  SMH:  [ 3.0, 35.0, 27.0, -2.0, 35.0, 38.0, -10.0, 65.0, 57.0, 40.0, -36.0, 73.0, 14.0,-12.0],
-  VGT:  [14.8, 27.5, 20.1,  4.4, 13.9, 38.8,  -2.2, 50.3, 48.2, 28.5, -33.2, 56.4, 23.5, -4.0],
-  XLE:  [ 4.6, 25.1, -7.8,-21.1, 27.4, -1.0, -18.2, 11.8,-33.7, 53.3,  65.7, -4.8,  5.6,  2.0],
-  // JEPI launched May 2020 — null for pre-2020 (treated as 0%)
-  JEPI: [null, null, null, null, null, null,  null, null,  1.5, 21.5,  -3.5,  9.8, 14.2, -2.0],
-};
-const JEPI_START_YEAR = 2020;
-const WINDOW = 5;
-// Rolling window uses all tickers except JEPI
+const NUM_MONTHS = 168; // Jan 2012 – Dec 2025
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const JEPI_FIRST_RETURN_IDX = 101; // June 2020 — first month with actual JEPI return
+const WINDOW_MONTHS = 60; // 5 years
 const RW_TICKERS = TICKERS.filter(t => t !== "JEPI");
+
+// ══════════════════════════════════════════════════
+// MONTHLY RETURN DATA (% total return, dividends reinvested)
+// Source: Yahoo Finance adjusted close prices, fetched March 2026
+// 168 values per ETF: Jan 2012 (index 0) through Dec 2025 (index 167)
+// null = ETF not yet in existence (treated as 0%)
+// ══════════════════════════════════════════════════
+const MONTHLY_RETURNS = {
+  SCHD: [
+    /* 2012 */  2.1,  2.9,  1.9,  0.4, -3.8,  3.6,  3.2,  0.6,  0.5, -0.2,  0.5, -0.9,
+    /* 2013 */  6.5,  2.1,  4.1,  3.6,  1.4, -1.5,  5.3, -3.5,  2.0,  5.7,  2.5,  1.2,
+    /* 2014 */ -3.8,  3.9,  1.3,  2.5,  1.3,  0.7, -1.0,  3.4, -0.9,  2.6,  3.0, -1.6,
+    /* 2015 */ -2.4,  5.2, -3.0,  1.4,  0.5, -4.1,  1.5, -5.3, -1.5,  9.7,  0.3, -1.7,
+    /* 2016 */ -1.6,  0.7,  5.6,  0.6,  1.4,  2.1,  3.7, -0.3, -0.4, -1.0,  3.3,  1.3,
+    /* 2017 */  0.4,  3.4, -0.6,  1.0,  1.7, -0.8,  2.4,  0.0,  2.1,  4.4,  4.2,  1.3,
+    /* 2018 */  5.3, -5.6, -2.9, -0.6,  1.8, -0.1,  5.4,  2.3,  0.6, -5.3,  3.4, -8.9,
+    /* 2019 */  6.9,  4.1,  0.9,  3.9, -7.6,  6.4,  2.5, -1.3,  2.9,  2.3,  2.8,  1.5,
+    /* 2020 */ -1.0, -9.3,-12.8, 13.8,  3.7, -1.5,  6.2,  5.1, -3.5,  1.4, 13.2,  2.1,
+    /* 2021 */  0.0,  6.1,  8.2,  2.9,  3.2, -1.7,  1.4,  2.1, -4.5,  5.2, -2.1,  6.5,
+    /* 2022 */ -2.0, -1.9,  2.3, -3.5,  3.9, -8.9,  4.9, -2.7, -8.2, 12.2,  6.8, -4.3,
+    /* 2023 */  3.0, -3.3, -1.9,  0.0, -4.1,  4.4,  5.1, -1.5, -5.1, -3.0,  6.3,  5.2,
+    /* 2024 */  1.2,  1.8,  3.9, -3.8,  2.1, -1.0,  7.3,  2.4,  0.0,  1.1,  4.6, -7.5,
+    /* 2025 */  2.8,  2.6, -2.0, -6.8,  1.4,  1.3,  1.0,  5.4, -2.2, -1.1,  3.1, -0.6
+  ],
+  VTI: [
+    /* 2012 */  5.7,  4.2,  2.6, -0.2, -6.2,  3.5,  1.4,  2.7,  2.0, -1.3,  0.8,  0.5,
+    /* 2013 */  6.2,  1.3,  3.5,  2.1,  2.4, -1.9,  6.2, -3.0,  3.4,  4.8,  2.7,  2.2,
+    /* 2014 */ -2.7,  4.9,  0.1,  0.5,  2.1,  2.2, -1.6,  4.2, -2.5,  3.2,  2.5, -0.6,
+    /* 2015 */ -2.2,  5.7, -1.6,  1.1,  1.3, -2.1,  2.1, -6.1, -3.4,  8.5,  0.6, -2.7,
+    /* 2016 */ -5.2,  0.0,  6.6,  1.1,  1.7, -0.2,  4.4,  0.2, -0.3, -1.7,  4.5,  1.4,
+    /* 2017 */  2.5,  3.7, -0.4,  1.5,  1.0,  0.5,  2.3,  0.1,  2.0,  2.6,  3.0,  0.7,
+    /* 2018 */  5.7, -3.8, -2.4,  0.9,  2.7,  0.3,  3.8,  3.4, -0.3, -7.0,  2.0, -9.7,
+    /* 2019 */  9.2,  3.6,  0.9,  4.5, -6.4,  6.7,  1.8, -2.1,  1.3,  2.6,  3.8,  2.2,
+    /* 2020 */  0.5, -8.0,-14.3, 13.7,  5.4,  1.8,  6.2,  7.1, -3.9, -1.5, 11.8,  4.3,
+    /* 2021 */  0.1,  3.1,  3.3,  5.4,  0.5,  2.2,  2.0,  2.9, -4.8,  7.0, -1.5,  3.4,
+    /* 2022 */ -5.7, -2.5,  2.9, -8.8, -0.3, -8.6,  9.8, -3.7, -9.6,  8.6,  5.2, -6.3,
+    /* 2023 */  7.4, -2.4,  2.3,  1.5,  0.4,  6.3,  4.1, -1.9, -5.1, -2.3,  9.4,  4.8,
+    /* 2024 */  1.6,  5.3,  2.9, -4.0,  4.8,  2.7,  2.3,  2.1,  1.7, -0.4,  6.7, -3.4,
+    /* 2025 */  3.4, -1.9, -6.2, -0.4,  6.3,  4.8,  2.6,  2.4,  3.1,  2.5,  0.3, -0.3
+  ],
+  QQQ: [
+    /* 2012 */  8.8,  6.4,  4.9, -1.0, -7.0,  3.4,  1.2,  5.2,  0.6, -5.0,  1.3, -1.0,
+    /* 2013 */  3.2,  0.3,  2.8,  2.8,  3.6, -2.7,  6.7, -0.4,  4.5,  5.3,  3.6,  2.6,
+    /* 2014 */ -1.6,  4.7, -2.6, -0.1,  4.5,  2.8,  1.5,  5.0, -1.0,  2.9,  4.5, -2.6,
+    /* 2015 */ -1.7,  7.2, -2.6,  2.2,  2.2, -2.7,  4.8, -6.8, -2.4, 11.6,  0.6, -1.9,
+    /* 2016 */ -6.6, -1.6,  6.5, -2.9,  4.4, -2.5,  7.4,  1.1,  2.0, -1.2,  0.4,  0.8,
+    /* 2017 */  5.5,  4.4,  1.8,  2.9,  3.9, -2.6,  4.3,  2.1, -0.5,  4.8,  2.0,  0.4,
+    /* 2018 */  9.0, -1.3, -4.2,  0.7,  5.7,  0.9,  3.0,  5.8, -0.5, -8.4, -0.3, -8.9,
+    /* 2019 */  9.3,  3.0,  3.7,  5.7, -8.2,  7.4,  2.6, -1.9,  0.7,  4.6,  4.1,  3.7,
+    /* 2020 */  3.3, -6.1, -7.5, 15.2,  6.6,  6.1,  7.5, 10.9, -5.8, -3.0, 11.2,  4.7,
+    /* 2021 */  0.4, -0.1,  1.6,  6.0, -1.2,  6.1,  3.0,  4.2, -5.8,  8.0,  2.0,  1.0,
+    /* 2022 */ -8.6, -4.5,  4.5,-13.5, -1.6, -9.1, 12.8, -5.1,-10.7,  4.2,  5.5, -9.2,
+    /* 2023 */ 10.9, -0.4,  9.3,  0.7,  7.9,  6.2,  4.0, -1.5, -5.2, -1.9, 10.8,  5.3,
+    /* 2024 */  2.1,  5.3,  1.1, -4.2,  6.2,  6.3, -1.5,  1.1,  2.5, -0.7,  5.4,  0.3,
+    /* 2025 */  2.3, -2.7, -7.7,  1.5,  9.2,  6.3,  2.5,  1.0,  5.3,  4.9, -1.6, -0.8
+  ],
+  IVV: [
+    /* 2012 */  5.3,  4.2,  2.8, -0.2, -6.0,  3.7,  1.7,  2.5,  1.8, -1.5,  0.9,  0.3,
+    /* 2013 */  5.8,  1.4,  3.2,  2.4,  2.4, -2.1,  5.9, -3.0,  2.7,  5.1,  3.0,  2.0,
+    /* 2014 */ -3.0,  4.6,  0.4,  1.2,  2.3,  1.6, -0.9,  4.0, -1.8,  2.9,  2.8, -0.8,
+    /* 2015 */ -2.4,  5.6, -2.1,  1.5,  1.3, -2.5,  2.8, -6.1, -3.0,  9.1,  0.4, -2.4,
+    /* 2016 */ -4.4, -0.1,  6.2,  0.4,  1.7, -0.2,  4.2,  0.1, -0.5, -1.3,  3.7,  1.6,
+    /* 2017 */  2.3,  4.0, -0.3,  1.4,  1.4,  0.2,  2.5,  0.3,  1.5,  2.8,  3.1,  0.7,
+    /* 2018 */  6.2, -3.8, -2.9,  0.8,  2.4,  0.1,  4.2,  3.2,  0.1, -6.4,  1.9, -9.5,
+    /* 2019 */  8.7,  3.2,  1.5,  4.4, -6.3,  6.3,  2.1, -1.7,  1.4,  2.7,  3.6,  2.3,
+    /* 2020 */  0.6, -8.5,-12.7, 13.4,  4.8,  1.5,  6.3,  7.0, -4.2, -2.1, 10.9,  3.3,
+    /* 2021 */ -0.6,  2.8,  4.2,  5.6,  0.7,  2.0,  2.7,  3.0, -5.0,  7.4, -0.7,  4.2,
+    /* 2022 */ -5.0, -2.9,  3.4, -8.5,  0.3, -8.6,  9.6, -4.1, -9.7,  8.7,  5.6, -6.1,
+    /* 2023 */  6.7, -2.5,  3.3,  2.0,  0.4,  6.3,  3.6, -1.6, -5.1, -1.8,  9.2,  4.2,
+    /* 2024 */  2.0,  5.2,  3.0, -3.7,  5.1,  3.3,  1.4,  2.4,  1.8, -0.6,  5.9, -2.7,
+    /* 2025 */  3.1, -1.3, -5.9, -0.4,  6.1,  4.9,  2.6,  2.1,  3.2,  2.7,  0.2, -0.3
+  ],
+  VPU: [
+    /* 2012 */ -2.7,  0.6,  0.3,  2.7,  0.2,  2.9,  3.7, -3.7,  0.4,  2.3, -3.8, -0.9,
+    /* 2013 */  6.3,  2.3,  4.6,  6.6, -8.2,  0.0,  5.5, -5.3,  0.4,  5.0, -2.1,  0.2,
+    /* 2014 */  3.8,  3.3,  2.4,  4.6, -0.7,  3.7, -6.2,  5.1, -3.5,  9.3,  0.8,  2.6,
+    /* 2015 */  2.2, -5.9, -1.5,  0.2,  0.4, -6.9,  6.5, -3.6,  1.7,  2.9, -2.1,  1.2,
+    /* 2016 */  5.7,  1.8,  7.4, -1.3,  1.6,  6.9, -0.1, -5.4, -0.3,  1.8, -4.5,  3.9,
+    /* 2017 */  2.1,  5.0, -0.9,  1.5,  4.0, -3.1,  3.4,  2.9, -3.2,  4.8,  2.9, -6.6,
+    /* 2018 */ -2.4, -4.1,  3.2,  3.2, -0.3,  1.5,  2.6,  1.2, -1.2,  2.0,  3.9, -4.9,
+    /* 2019 */  4.6,  3.9,  2.1,  1.6, -0.9,  2.6,  0.5,  4.8,  3.3, -0.1, -2.0,  2.4,
+    /* 2020 */  6.9,-10.0,-10.6,  3.9,  4.3, -5.8,  8.3, -2.5, -0.1,  5.6,  1.4, -0.1,
+    /* 2021 */ -0.1, -5.5,  9.5,  4.5, -2.3, -2.6,  4.7,  3.7, -7.0,  6.0, -1.6,  8.7,
+    /* 2022 */ -2.7, -1.9,  9.1, -3.7,  4.5, -5.8,  6.5,  0.3,-11.9,  3.3,  7.0, -1.7,
+    /* 2023 */ -0.8, -5.7,  3.7,  2.3, -5.6,  0.6,  3.2, -6.3, -6.5,  1.8,  5.1,  1.4,
+    /* 2024 */ -2.4,  1.4,  6.1,  2.4,  8.7, -6.0,  7.7,  4.5,  5.4, -0.4,  4.1, -8.8,
+    /* 2025 */  3.6,  2.0, -0.4,  0.8,  3.5, -0.3,  5.7, -1.4,  3.7,  2.6,  1.8, -5.8
+  ],
+  IYF: [
+    /* 2012 */  7.7,  4.9,  6.2, -1.0, -8.3,  4.4,  0.6,  2.9,  2.4,  1.6, -0.2,  3.1,
+    /* 2013 */  6.9,  1.3,  3.7,  2.7,  4.5, -1.5,  5.2, -5.0,  2.8,  4.0,  3.6,  1.9,
+    /* 2014 */ -3.1,  3.6,  2.1, -1.4,  1.5,  1.9, -1.2,  4.0, -1.6,  4.4,  2.3,  1.2,
+    /* 2015 */ -5.2,  5.2, -0.7,  0.0,  1.9, -0.8,  3.8, -6.6, -3.0,  6.7,  1.9, -2.9,
+    /* 2016 */ -7.6, -2.6,  7.0,  3.2,  2.3, -3.3,  4.3,  3.2, -2.3,  0.7,  8.8,  3.3,
+    /* 2017 */  1.0,  4.8, -2.6,  0.1, -0.8,  4.4,  2.2, -1.0,  3.4,  2.7,  3.2,  0.9,
+    /* 2018 */  4.9, -3.2, -2.5,  0.2,  0.6, -1.0,  4.4,  2.1, -2.3, -4.7,  3.2,-10.6,
+    /* 2019 */  9.8,  2.8, -1.1,  7.1, -5.0,  5.0,  2.8, -2.3,  2.5,  2.3,  3.5,  1.6,
+    /* 2020 */ -0.3, -9.8,-21.2, 10.6,  3.4, -0.2,  3.7,  4.2, -4.3, -1.6, 14.6,  4.9,
+    /* 2021 */ -2.0,  9.4,  4.9,  7.5,  2.8, -1.7,  1.7,  3.1, -2.6,  8.5, -5.3,  2.6,
+    /* 2022 */ -0.1, -1.8, -0.4,-10.0,  3.5,-10.8,  7.6, -1.8, -8.3, 12.3,  6.5, -6.1,
+    /* 2023 */  7.9, -2.3,-10.1,  3.4, -4.1,  6.3,  6.9, -3.2, -2.7, -2.4, 11.2,  5.9,
+    /* 2024 */  2.4,  4.5,  5.1, -4.4,  4.5, -0.7,  7.4,  3.7, -1.1,  3.1, 11.5, -7.1,
+    /* 2025 */  7.2,  0.2, -4.7, -1.7,  5.0,  4.3,  1.3,  2.9,  0.7, -2.9,  2.7,  2.3
+  ],
+  SMH: [
+    /* 2012 */ 10.2,  2.9,  3.8, -3.4,-10.2,  3.7,  0.0,  2.3, -4.0, -1.7,  3.1,  0.9,
+    /* 2013 */  8.4,  2.4,  1.2,  4.3,  3.3, -1.6,  2.3, -3.7,  7.4,  3.2,  0.0,  3.0,
+    /* 2014 */ -1.4,  6.0,  4.5, -2.1,  3.7,  6.8, -1.5,  6.0, -1.1,  0.6,  8.0, -1.7,
+    /* 2015 */ -2.3,  8.0, -2.9,  0.3,  7.8, -8.8, -4.4, -5.0,  0.7,  8.7,  2.9, -4.5,
+    /* 2016 */ -4.7,  1.4,  9.2, -4.8,  8.5,  0.2, 11.4,  4.3,  4.9, -1.7,  4.1,  0.8,
+    /* 2017 */  4.7,  2.6,  4.3,  0.0,  7.9, -4.8,  4.9,  3.2,  5.4,  8.9, -1.3, -2.4,
+    /* 2018 */ 10.4,  0.0, -2.1, -6.8, 10.3, -4.2,  3.1,  2.9, -2.3,-12.2,  3.5, -9.8,
+    /* 2019 */ 12.8,  7.0,  2.9,  9.3,-15.5, 12.2,  6.3, -2.3,  4.1,  7.0,  4.3,  6.4,
+    /* 2020 */ -1.3, -4.1,-11.2, 14.2,  5.5,  8.3,  8.8,  5.5, -0.7,  0.4, 19.2,  4.7,
+    /* 2021 */  4.5,  6.3,  1.1, -0.2,  2.5,  5.2,  0.3,  2.9, -5.4,  6.8, 11.4,  1.3,
+    /* 2022 */-10.3, -2.6,  0.6,-14.8,  6.4,-16.7, 16.4, -9.5,-13.7,  2.2, 20.4,-10.9,
+    /* 2023 */ 18.2,  1.0,  9.9, -6.1, 16.7,  5.5,  5.5, -2.7, -7.2, -4.2, 15.5,  9.0,
+    /* 2024 */  6.9, 14.0,  6.2, -4.8, 12.3,  8.4, -5.3, -1.4,  0.8, -1.5,  0.2,  0.0,
+    /* 2025 */  1.0, -4.5, -9.2, -0.1, 13.5, 16.3,  3.5,  0.5, 12.4, 11.2, -3.0,  2.2
+  ],
+  VGT: [
+    /* 2012 */  8.8,  7.0,  4.7, -2.0, -8.2,  3.0,  0.5,  5.1,  1.1, -6.5,  1.6, -0.9,
+    /* 2013 */  3.4,  0.5,  2.7,  0.5,  4.2, -3.2,  5.4, -0.4,  3.9,  3.7,  3.6,  3.4,
+    /* 2014 */ -1.3,  4.9, -0.2, -0.9,  3.4,  3.1,  0.5,  4.3, -1.3,  1.9,  5.0, -2.4,
+    /* 2015 */ -3.5,  8.3, -2.5,  1.3,  2.5, -3.9,  2.3, -5.8, -2.3, 11.5,  1.2, -3.1,
+    /* 2016 */ -5.5, -1.0,  8.5, -4.3,  5.3, -2.6,  7.9,  2.3,  2.1, -0.2,  0.5,  1.0,
+    /* 2017 */  4.7,  4.9,  2.0,  2.6,  4.4, -2.8,  4.4,  3.1,  0.5,  7.7,  1.1, -0.2,
+    /* 2018 */  7.8,  0.1, -3.6,  0.2,  7.0, -0.9,  2.9,  8.9, -0.1, -8.2, -1.5, -8.7,
+    /* 2019 */  8.4,  7.3,  3.8,  6.7, -8.9,  8.4,  3.8, -2.2,  0.9,  4.2,  5.6,  3.7,
+    /* 2020 */  4.1, -7.3,-10.1, 14.6,  7.9,  6.8,  6.2, 11.1, -5.1, -4.1, 12.5,  5.5,
+    /* 2021 */ -0.5,  1.5,  0.6,  5.3, -1.2,  7.1,  3.5,  3.5, -6.0,  8.4,  3.1,  2.3,
+    /* 2022 */ -7.7, -4.3,  3.1,-11.7, -1.7, -9.6, 13.6, -5.7,-12.0,  7.7,  5.4, -8.2,
+    /* 2023 */ 10.0,  0.5,  9.5, -0.1,  8.5,  6.1,  3.0, -2.2, -6.7, -1.5, 13.3,  4.8,
+    /* 2024 */  2.2,  4.8,  1.3, -5.4,  8.1,  7.9, -1.4,  1.0,  2.2, -0.6,  6.9, -0.1,
+    /* 2025 */ -0.7, -2.9, -9.4,  1.4, 10.4,  9.4,  4.2,  0.9,  7.1,  6.4, -5.2,  0.2
+  ],
+  XLE: [
+    /* 2012 */  2.7,  5.9, -4.2, -0.3,-10.7,  4.3,  5.4,  2.7,  2.7, -1.6, -1.2,  0.5,
+    /* 2013 */  8.9,  0.4,  2.1, -0.9,  2.8, -2.7,  5.8, -1.0,  1.6,  4.7,  0.1,  2.4,
+    /* 2014 */ -5.4,  5.1,  1.6,  5.8,  1.7,  5.0, -3.0,  2.2, -8.2, -3.0, -8.7, -0.8,
+    /* 2015 */ -4.0,  4.6, -1.8,  7.3, -5.2, -4.1, -7.1, -4.3, -7.9, 12.0,  0.0,-11.3,
+    /* 2016 */ -2.6, -2.8,  9.4,  9.8, -0.9,  2.0, -0.6,  1.7,  3.1, -2.2,  8.5,  1.2,
+    /* 2017 */ -2.7, -2.1, -2.1, -2.4, -3.5, -0.8,  3.3, -5.5,  8.8,  0.5,  1.8,  4.6,
+    /* 2018 */  4.3,-10.8,  1.0, 10.3,  3.0, -0.1,  2.2, -3.5,  1.7,-10.7, -1.6,-13.3,
+    /* 2019 */ 12.3,  2.3,  1.3,  0.8,-11.1,  8.4, -0.7, -8.3,  3.0, -1.2,  1.6,  2.0,
+    /* 2020 */ -7.4,-15.3,-35.8, 33.7,  2.0, -2.3, -3.6, -1.1,-16.0, -2.5, 28.0,  3.1,
+    /* 2021 */  5.1, 22.5,  1.9,  1.7,  5.7,  3.2, -7.4, -2.0,  7.6, 11.7, -5.0,  1.7,
+    /* 2022 */ 20.3,  7.1,  8.3, -0.7, 16.0,-18.0, 10.9,  2.7,-10.5, 26.3,  1.3, -4.0,
+    /* 2023 */  3.9, -6.9, -1.0,  3.8,-10.0,  6.0,  8.7,  1.6,  1.7, -5.1, -0.7, -0.9,
+    /* 2024 */  0.4,  3.3,  9.6, -0.1, -0.3, -2.2,  3.1, -2.1, -3.8,  1.7,  7.8,-10.3,
+    /* 2025 */  3.2,  3.8,  2.7,-13.2,  1.3,  4.0,  3.7,  3.6, -1.2, -0.5,  2.6, -1.1
+  ],
+  JEPI: [
+    /* 2012 */ null, null, null, null, null, null, null, null, null, null, null, null,
+    /* 2013 */ null, null, null, null, null, null, null, null, null, null, null, null,
+    /* 2014 */ null, null, null, null, null, null, null, null, null, null, null, null,
+    /* 2015 */ null, null, null, null, null, null, null, null, null, null, null, null,
+    /* 2016 */ null, null, null, null, null, null, null, null, null, null, null, null,
+    /* 2017 */ null, null, null, null, null, null, null, null, null, null, null, null,
+    /* 2018 */ null, null, null, null, null, null, null, null, null, null, null, null,
+    /* 2019 */ null, null, null, null, null, null, null, null, null, null, null, null,
+    /* 2020 */ null, null, null, null, null, -0.5,  4.5,  2.8, -1.0, -1.4,  7.1,  1.7,
+    /* 2021 */  0.3,  0.2,  6.2,  2.6,  1.7,  1.7,  2.4,  2.0, -4.3,  4.5, -1.7,  4.9,
+    /* 2022 */ -2.2, -1.9,  3.2, -3.9,  0.1, -3.7,  4.5, -2.7, -6.5,  7.6,  5.0, -3.0,
+    /* 2023 */  4.0, -3.0,  2.3,  2.2, -1.7,  3.2,  1.7,  0.1, -3.1, -1.2,  4.7,  1.2,
+    /* 2024 */  3.3,  1.8,  2.1, -2.8,  2.2,  0.3,  2.1,  2.9,  1.7, -0.7,  4.3, -4.8,
+    /* 2025 */  3.9,  0.7, -3.3, -2.2,  1.6,  2.3,  0.3,  1.9,  0.5,  0.3,  2.5, -0.6
+  ],
+};
+
+// ══════════════════════════════════════════════════
+// PRE-COMPUTED CUMULATIVE RETURN ARRAYS
+// CUM[t][0] = 1.0 (baseline before Jan 2012)
+// CUM[t][i] = value after applying returns 0..i-1
+// ══════════════════════════════════════════════════
+const CUM = {};
+TICKERS.forEach(t => {
+  CUM[t] = new Float64Array(NUM_MONTHS + 1);
+  CUM[t][0] = 1.0;
+  for (let i = 0; i < NUM_MONTHS; i++) {
+    const r = MONTHLY_RETURNS[t][i];
+    CUM[t][i + 1] = CUM[t][i] * (1 + (r === null ? 0 : r) / 100);
+  }
+});
 
 // ══════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════
-const RESET_ALLOC = Object.fromEntries(TICKERS.map(t => [t, 10000])); // 10 × $10K = $100K
+const RESET_ALLOC = Object.fromEntries(TICKERS.map(t => [t, 10000]));
 let allocations   = {...RESET_ALLOC};
 let currentTab    = "growth";
 let mainChart     = null;
@@ -383,80 +567,112 @@ let rwPerfChart   = null;
 // ══════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════
-function fmtK(n){ if(!isFinite(n))return"—"; if(Math.abs(n)>=1e6)return"$"+(n/1e6).toFixed(2)+"M"; if(Math.abs(n)>=1e3)return"$"+(n/1e3).toFixed(1)+"K"; return"$"+n.toFixed(0); }
-function fmtP(n,plus=false){ if(!isFinite(n))return"—"; return(plus&&n>0?"+":"")+n.toFixed(1)+"%"; }
+function fmtK(n){ if(!isFinite(n))return"\u2014"; if(Math.abs(n)>=1e6)return"$"+(n/1e6).toFixed(2)+"M"; if(Math.abs(n)>=1e3)return"$"+(n/1e3).toFixed(1)+"K"; return"$"+n.toFixed(0); }
+function fmtP(n,plus=false){ if(!isFinite(n))return"\u2014"; return(plus&&n>0?"+":"")+n.toFixed(1)+"%"; }
 function stdDev(arr){ const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0)/arr.length); }
 function tick(){ return new Promise(r=>setTimeout(r,0)); }
-function safeReturn(ticker, yearIdx){ const r=RETURNS[ticker][yearIdx]; return r===null||r===undefined ? 0 : r; }
+function safeReturn(ticker, monthIdx){
+  const r = MONTHLY_RETURNS[ticker][monthIdx];
+  return r === null || r === undefined ? 0 : r;
+}
+function monthLabel(idx){
+  return MONTH_NAMES[idx % 12] + "\u2019" + String(2012 + Math.floor(idx / 12)).slice(2);
+}
+function getStartIdx(){
+  return (+document.getElementById("startYear").value - 2012) * 12
+       + (+document.getElementById("startMonth").value - 1);
+}
 
 // ══════════════════════════════════════════════════
-// CORE MATH
+// CORE MATH (monthly)
 // ══════════════════════════════════════════════════
-function calcPortfolio(alloc, startIdx, length, tickers=TICKERS){
-  const n = Math.min(length ?? (ALL_YEARS.length - startIdx), ALL_YEARS.length - startIdx);
-  const totalStart = tickers.reduce((s,t)=>s+(alloc[t]||0), 0);
-  if(totalStart===0||n<=0) return{cagr:0,dd:0,finalVal:0};
-  const vals = Object.fromEntries(tickers.map(t=>[t, alloc[t]||0]));
-  let portVal=totalStart, peak=portVal, maxDD=0;
-  for(let i=0;i<n;i++){
-    const idx=startIdx+i;
-    tickers.forEach(t=>{ vals[t]*=(1+safeReturn(t,idx)/100); });
-    portVal=tickers.reduce((s,t)=>s+vals[t],0);
-    if(portVal>peak)peak=portVal;
-    const dd=(peak-portVal)/peak*100;
-    if(dd>maxDD)maxDD=dd;
+function calcPortfolio(alloc, startIdx, numMonths, tickers=TICKERS){
+  const n = Math.min(numMonths ?? (NUM_MONTHS - startIdx), NUM_MONTHS - startIdx);
+  const totalStart = tickers.reduce((s,t) => s + (alloc[t]||0), 0);
+  if(totalStart === 0 || n <= 0) return {cagr:0, dd:0, finalVal:0};
+  let peak = totalStart, maxDD = 0, portVal = totalStart;
+  for(let m = 1; m <= n; m++){
+    portVal = 0;
+    for(let ti = 0; ti < tickers.length; ti++){
+      const t = tickers[ti];
+      portVal += (alloc[t]||0) * CUM[t][startIdx + m] / CUM[t][startIdx];
+    }
+    if(portVal > peak) peak = portVal;
+    const dd = (peak - portVal) / peak * 100;
+    if(dd > maxDD) maxDD = dd;
   }
-  return{cagr:(Math.pow(portVal/totalStart,1/n)-1)*100, dd:maxDD, finalVal:portVal};
+  return {cagr: (Math.pow(portVal / totalStart, 12 / n) - 1) * 100, dd: maxDD, finalVal: portVal};
 }
 
 function calcGrowthRows(alloc, startIdx){
-  const years=ALL_YEARS.slice(startIdx);
-  const vals=Object.fromEntries(TICKERS.map(t=>[t, alloc[t]||0]));
-  const rows=[{year:"Start",...Object.fromEntries(TICKERS.map(t=>[t,alloc[t]||0])),Portfolio:TICKERS.reduce((s,t)=>s+(alloc[t]||0),0)}];
-  years.forEach((_,i)=>{
-    const idx=startIdx+i;
-    TICKERS.forEach(t=>{ vals[t]*=(1+safeReturn(t,idx)/100); });
-    const row={year:ALL_YEARS[startIdx+i]};
-    TICKERS.forEach(t=>row[t]=Math.round(vals[t]));
-    row.Portfolio=Math.round(TICKERS.reduce((s,t)=>s+vals[t],0));
+  const numMonths = NUM_MONTHS - startIdx;
+  const rows = [];
+  // Starting point
+  const r0 = {label:"Start"};
+  TICKERS.forEach(t => r0[t] = alloc[t]||0);
+  r0.Portfolio = TICKERS.reduce((s,t) => s + (alloc[t]||0), 0);
+  rows.push(r0);
+  // Monthly values
+  for(let m = 1; m <= numMonths; m++){
+    const row = {label: monthLabel(startIdx + m - 1)};
+    TICKERS.forEach(t => {
+      row[t] = Math.round((alloc[t]||0) * CUM[t][startIdx + m] / CUM[t][startIdx]);
+    });
+    row.Portfolio = Math.round(TICKERS.reduce((s,t) => s + (alloc[t]||0) * CUM[t][startIdx + m] / CUM[t][startIdx], 0));
     rows.push(row);
-  });
+  }
   return rows;
 }
 
 function calcStats(alloc, startIdx){
-  const years=ALL_YEARS.slice(startIdx); const n=years.length;
-  return TICKERS.map(t=>{
-    const start=alloc[t]||0;
-    if(start===0) return{t,end:0,cagr:0,totalRet:0,maxDD:0,excluded:true};
-    let v=start,peak=start,maxDD=0;
-    years.forEach((_,i)=>{ v*=(1+safeReturn(t,startIdx+i)/100); if(v>peak)peak=v; const dd=(peak-v)/peak*100; if(dd>maxDD)maxDD=dd; });
-    return{t,end:v,cagr:(Math.pow(v/start,1/n)-1)*100,totalRet:(v-start)/start*100,maxDD,excluded:false};
-  }).sort((a,b)=>b.end-a.end);
+  const numMonths = NUM_MONTHS - startIdx;
+  return TICKERS.map(t => {
+    const start = alloc[t]||0;
+    if(start === 0) return {t, end:0, cagr:0, totalRet:0, maxDD:0, excluded:true};
+    let peak = start, maxDD = 0;
+    for(let m = 1; m <= numMonths; m++){
+      const val = start * CUM[t][startIdx + m] / CUM[t][startIdx];
+      if(val > peak) peak = val;
+      const dd = (peak - val) / peak * 100;
+      if(dd > maxDD) maxDD = dd;
+    }
+    const finalVal = start * CUM[t][NUM_MONTHS] / CUM[t][startIdx];
+    const cagr = (Math.pow(finalVal / start, 12 / numMonths) - 1) * 100;
+    const totalRet = (finalVal - start) / start * 100;
+    return {t, end:finalVal, cagr, totalRet, maxDD, excluded:false};
+  }).sort((a,b) => b.end - a.end);
 }
 
-function scoreFunc(cagr,dd,w){ return cagr/Math.pow(Math.max(dd,0.01),w); }
+function scoreFunc(cagr, dd, w){ return cagr / Math.pow(Math.max(dd, 0.01), w); }
+
+// Compound monthly returns into annual return for a given year
+function annualReturn(ticker, year){
+  const janIdx = (year - 2012) * 12;
+  let prod = 1;
+  for(let m = 0; m < 12; m++) prod *= (1 + safeReturn(ticker, janIdx + m) / 100);
+  return (prod - 1) * 100;
+}
 
 // ══════════════════════════════════════════════════
 // ALLOC DROPDOWNS
 // ══════════════════════════════════════════════════
 function buildAllocGrid(){
-  const grid=document.getElementById("allocGrid"); grid.innerHTML="";
-  TICKERS.forEach(t=>{
-    const div=document.createElement("div"); div.className="alloc-group"; div.id="grp_"+t;
-    const isLimited=(t==="JEPI");
-    div.innerHTML=`<label style="color:${COLORS[t]}">${t}${isLimited?` <span style="color:#f59e0b;font-size:10px">2020+</span>`:""}` +`</label>`;
-    const sel=document.createElement("select"); sel.id="sel_"+t;
-    sel.onchange=()=>{ allocations[t]=+sel.value; update(); };
-    for(let v=0;v<=100000;v+=5000){
-      const opt=document.createElement("option");
-      opt.value=v; opt.textContent=v===0?"$0":"$"+(v/1000)+"K";
-      if(v===(allocations[t]||0)) opt.selected=true;
+  const grid = document.getElementById("allocGrid"); grid.innerHTML = "";
+  TICKERS.forEach(t => {
+    const div = document.createElement("div"); div.className = "alloc-group"; div.id = "grp_" + t;
+    const isLimited = (t === "JEPI");
+    div.innerHTML = `<label style="color:${COLORS[t]}">${t}${isLimited ? ` <span style="color:#f59e0b;font-size:10px">2020+</span>` : ""}</label>`;
+    const sel = document.createElement("select"); sel.id = "sel_" + t;
+    sel.onchange = () => { allocations[t] = +sel.value; update(); };
+    for(let v = 0; v <= 100000; v += 5000){
+      const opt = document.createElement("option");
+      opt.value = v; opt.textContent = v === 0 ? "$0" : "$" + (v/1000) + "K";
+      if(v === (allocations[t]||0)) opt.selected = true;
       sel.appendChild(opt);
     }
     if(isLimited){
-      const warn=document.createElement("div");
-      warn.className="limited-badge"; warn.textContent="⚠ Limited to 2020+";
+      const warn = document.createElement("div");
+      warn.className = "limited-badge"; warn.textContent = "\u26a0 Limited to 2020+";
       div.appendChild(sel); div.appendChild(warn);
     } else {
       div.appendChild(sel);
@@ -467,30 +683,30 @@ function buildAllocGrid(){
 }
 
 function setDropdowns(alloc){
-  TICKERS.forEach(t=>{
-    const sel=document.getElementById("sel_"+t); if(!sel) return;
-    sel.value=Math.max(0,Math.min(100000,Math.round((alloc[t]||0)/5000)*5000));
-    allocations[t]=+sel.value;
+  TICKERS.forEach(t => {
+    const sel = document.getElementById("sel_" + t); if(!sel) return;
+    sel.value = Math.max(0, Math.min(100000, Math.round((alloc[t]||0) / 5000) * 5000));
+    allocations[t] = +sel.value;
   });
 }
 
 function resetAllocations(){
-  allocations={...RESET_ALLOC};
+  allocations = {...RESET_ALLOC};
   setDropdowns(allocations);
   update();
 }
 
-function onStartYearChange(){
+function onStartDateChange(){
   updateJepiWarning();
   update();
 }
 
 function updateJepiWarning(){
-  const startYear=+document.getElementById("startYear").value;
-  const showWarn=(startYear<JEPI_START_YEAR && (allocations["JEPI"]||0)>0);
-  document.getElementById("jepiWarn").style.display=showWarn?"block":"none";
-  const grp=document.getElementById("grp_JEPI");
-  if(grp){ grp.classList.toggle("has-warning", startYear<JEPI_START_YEAR); }
+  const startIdx = getStartIdx();
+  const showWarn = (startIdx < JEPI_FIRST_RETURN_IDX && (allocations["JEPI"]||0) > 0);
+  document.getElementById("jepiWarn").style.display = showWarn ? "block" : "none";
+  const grp = document.getElementById("grp_JEPI");
+  if(grp) grp.classList.toggle("has-warning", startIdx < JEPI_FIRST_RETURN_IDX);
 }
 
 // ══════════════════════════════════════════════════
@@ -498,123 +714,140 @@ function updateJepiWarning(){
 // ══════════════════════════════════════════════════
 function update(){
   updateJepiWarning();
-  const startIdx=ALL_YEARS.indexOf(+document.getElementById("startYear").value);
-  const total=TICKERS.reduce((s,t)=>s+(allocations[t]||0),0);
-  const badge=document.getElementById("totalBadge");
-  badge.textContent=fmtK(total); badge.className="total-badge "+(total===100000?"ok":"bad");
+  const startIdx = getStartIdx();
+  const numMonths = NUM_MONTHS - startIdx;
+  const total = TICKERS.reduce((s,t) => s + (allocations[t]||0), 0);
+  const badge = document.getElementById("totalBadge");
+  badge.textContent = fmtK(total); badge.className = "total-badge " + (total === 100000 ? "ok" : "bad");
 
-  const growthRows=calcGrowthRows(allocations,startIdx);
-  const stats=calcStats(allocations,startIdx);
-  const finalRow=growthRows[growthRows.length-1];
-  const n=ALL_YEARS.slice(startIdx).length;
-  const portCagr=total>0?(Math.pow(finalRow.Portfolio/total,1/n)-1)*100:0;
-  const portRet =total>0?(finalRow.Portfolio-total)/total*100:0;
-  let peak=total,portMaxDD=0;
-  growthRows.slice(1).forEach(r=>{ if(r.Portfolio>peak)peak=r.Portfolio; const dd=(peak-r.Portfolio)/peak*100; if(dd>portMaxDD)portMaxDD=dd; });
+  const growthRows = calcGrowthRows(allocations, startIdx);
+  const stats = calcStats(allocations, startIdx);
+  const finalRow = growthRows[growthRows.length - 1];
+  const portCagr = total > 0 ? (Math.pow(finalRow.Portfolio / total, 12 / numMonths) - 1) * 100 : 0;
+  const portRet  = total > 0 ? (finalRow.Portfolio - total) / total * 100 : 0;
+  let peak = total, portMaxDD = 0;
+  growthRows.slice(1).forEach(r => { if(r.Portfolio > peak) peak = r.Portfolio; const dd = (peak - r.Portfolio) / peak * 100; if(dd > portMaxDD) portMaxDD = dd; });
 
-  document.getElementById("statValue").textContent=fmtK(finalRow.Portfolio);
-  document.getElementById("statCagr").textContent=fmtP(portCagr);
-  document.getElementById("statDD").textContent="-"+portMaxDD.toFixed(1)+"%";
-  document.getElementById("tableTitle").textContent=`Performance Summary (${ALL_YEARS[startIdx]}–2025)`;
+  document.getElementById("statValue").textContent = fmtK(finalRow.Portfolio);
+  document.getElementById("statCagr").textContent = fmtP(portCagr);
+  document.getElementById("statDD").textContent = "-" + portMaxDD.toFixed(1) + "%";
+  const startMonth = (startIdx % 12) + 1;
+  const startYear  = 2012 + Math.floor(startIdx / 12);
+  document.getElementById("tableTitle").textContent = `Performance Summary (${MONTH_NAMES[startMonth - 1]} ${startYear}\u2013Dec 2025)`;
 
   // Cards
-  const cardsEl=document.getElementById("cards"); cardsEl.innerHTML="";
-  stats.forEach((s,i)=>{
-    const c=document.createElement("div"); c.className="card";
-    const tip=ETF_NAMES[s.t]||{name:s.t,sub:""};
-    c.innerHTML=`
+  const cardsEl = document.getElementById("cards"); cardsEl.innerHTML = "";
+  stats.forEach((s,i) => {
+    const c = document.createElement("div"); c.className = "card";
+    const tip = ETF_NAMES[s.t] || {name:s.t, sub:""};
+    c.innerHTML = `
       <div class="card-tooltip">
         <div class="card-tooltip-name" style="color:${COLORS[s.t]}">${tip.name}</div>
         <div class="card-tooltip-sub">${tip.sub}</div>
       </div>
       <div class="card-header"><span class="card-ticker" style="color:${COLORS[s.t]}">${s.t}</span><span class="card-rank">#${i+1}</span></div>
-      <div class="card-value">${s.excluded?"—":fmtK(s.end)}</div>
-      <div class="card-meta">${s.excluded?"$0 allocated":fmtP(s.totalRet,true)+" · "+s.cagr.toFixed(1)+"%/yr"}</div>`;
+      <div class="card-value">${s.excluded ? "\u2014" : fmtK(s.end)}</div>
+      <div class="card-meta">${s.excluded ? "$0 allocated" : fmtP(s.totalRet,true) + " \u00b7 " + s.cagr.toFixed(1) + "%/yr"}</div>`;
     cardsEl.appendChild(c);
   });
-  const pc=document.createElement("div"); pc.className="card portfolio";
-  pc.innerHTML=`
+  const pc = document.createElement("div"); pc.className = "card portfolio";
+  pc.innerHTML = `
     <div class="card-tooltip"><div class="card-tooltip-name">Combined Portfolio</div><div class="card-tooltip-sub">All allocated ETFs weighted by dollar amount</div></div>
     <div class="card-header"><span class="card-ticker">Portfolio</span><span class="card-rank">combined</span></div>
     <div class="card-value green">${fmtK(finalRow.Portfolio)}</div>
-    <div class="card-meta">${fmtP(portRet,true)} · ${portCagr.toFixed(1)}%/yr</div>`;
+    <div class="card-meta">${fmtP(portRet,true)} \u00b7 ${portCagr.toFixed(1)}%/yr</div>`;
   cardsEl.appendChild(pc);
 
   // Summary table
-  const tb=document.getElementById("summaryBody"); tb.innerHTML="";
-  stats.forEach((s,i)=>{
-    const isJepi=(s.t==="JEPI");
-    const startYr=+document.getElementById("startYear").value;
-    const jNote=(isJepi&&startYr<JEPI_START_YEAR&&!s.excluded)?' <span style="color:#f59e0b;font-size:10px">⚠2020+</span>':"";
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td class="left"><span style="color:${COLORS[s.t]};font-weight:700">${s.t}</span>${jNote} <span class="muted" style="font-size:11px">#${i+1}</span></td>
+  const tb = document.getElementById("summaryBody"); tb.innerHTML = "";
+  stats.forEach((s,i) => {
+    const isJepi = (s.t === "JEPI");
+    const jNote = (isJepi && startIdx < JEPI_FIRST_RETURN_IDX && !s.excluded) ? ' <span style="color:#f59e0b;font-size:10px">\u26a02020+</span>' : "";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="left"><span style="color:${COLORS[s.t]};font-weight:700">${s.t}</span>${jNote} <span class="muted" style="font-size:11px">#${i+1}</span></td>
       <td class="right muted">${fmtK(allocations[s.t]||0)}</td>
-      <td class="right" style="font-weight:700">${s.excluded?"—":fmtK(s.end)}</td>
-      <td class="right ${s.totalRet>=0?"green":"red"}">${s.excluded?"—":fmtP(s.totalRet,true)}</td>
-      <td class="right blue">${s.excluded?"—":s.cagr.toFixed(1)+"%/yr"}</td>
-      <td class="right red">${s.excluded?"—":"-"+s.maxDD.toFixed(1)+"%"}</td>
-      <td class="right green">${s.excluded?"—":"+"+fmtK(s.end-(allocations[s.t]||0))}</td>`;
+      <td class="right" style="font-weight:700">${s.excluded ? "\u2014" : fmtK(s.end)}</td>
+      <td class="right ${s.totalRet >= 0 ? "green" : "red"}">${s.excluded ? "\u2014" : fmtP(s.totalRet,true)}</td>
+      <td class="right blue">${s.excluded ? "\u2014" : s.cagr.toFixed(1) + "%/yr"}</td>
+      <td class="right red">${s.excluded ? "\u2014" : "-" + s.maxDD.toFixed(1) + "%"}</td>
+      <td class="right green">${s.excluded ? "\u2014" : "+" + fmtK(s.end - (allocations[s.t]||0))}</td>`;
     tb.appendChild(tr);
   });
-  const ptr=document.createElement("tr"); ptr.className="portfolio-row";
-  ptr.innerHTML=`<td class="left">Portfolio</td><td class="right muted">${fmtK(total)}</td>
+  const ptr = document.createElement("tr"); ptr.className = "portfolio-row";
+  ptr.innerHTML = `<td class="left">Portfolio</td><td class="right muted">${fmtK(total)}</td>
     <td class="right green" style="font-size:15px">${fmtK(finalRow.Portfolio)}</td>
     <td class="right green">${fmtP(portRet,true)}</td><td class="right blue">${portCagr.toFixed(1)}%/yr</td>
     <td class="right red">-${portMaxDD.toFixed(1)}%</td>
-    <td class="right green">+${fmtK(finalRow.Portfolio-total)}</td>`;
+    <td class="right green">+${fmtK(finalRow.Portfolio - total)}</td>`;
   tb.appendChild(ptr);
 
-  // Year-by-year
-  document.getElementById("ybyHead").innerHTML=`<tr><th class="left">Year</th>${TICKERS.map(t=>`<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Total</th></tr>`;
-  const yb=document.getElementById("ybyBody"); yb.innerHTML="";
-  growthRows.slice(1).forEach(row=>{
-    const yr=row.year;
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td class="left mono muted">${yr}</td>${TICKERS.map(t=>{
-      if((allocations[t]||0)===0) return`<td class="right mono muted">—</td>`;
-      if(t==="JEPI"&&yr<JEPI_START_YEAR) return`<td class="right mono muted" title="JEPI not active">${fmtK(row[t])} <span style="color:#f59e0b;font-size:9px">0%</span></td>`;
-      return`<td class="right mono">${fmtK(row[t])}</td>`;
-    }).join("")}<td class="right mono" style="font-weight:700">${fmtK(row.Portfolio)}</td>`;
+  // Year-by-year table (December month-end values)
+  document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${TICKERS.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Total</th></tr>`;
+  const yb = document.getElementById("ybyBody"); yb.innerHTML = "";
+  for(let year = startYear; year <= 2025; year++){
+    const decCumIdx = (year - 2012 + 1) * 12; // CUM index at end of December
+    const vals = {};
+    TICKERS.forEach(t => { vals[t] = Math.round((allocations[t]||0) * CUM[t][decCumIdx] / CUM[t][startIdx]); });
+    const portTotal = TICKERS.reduce((s,t) => s + vals[t], 0);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="left mono muted">${year}</td>${TICKERS.map(t => {
+      if((allocations[t]||0) === 0) return `<td class="right mono muted">\u2014</td>`;
+      if(t === "JEPI" && year < 2020) return `<td class="right mono muted" title="JEPI not active">${fmtK(vals[t])} <span style="color:#f59e0b;font-size:9px">0%</span></td>`;
+      return `<td class="right mono">${fmtK(vals[t])}</td>`;
+    }).join("")}<td class="right mono" style="font-weight:700">${fmtK(portTotal)}</td>`;
     yb.appendChild(tr);
-  });
+  }
 
-  const activeYears=ALL_YEARS.slice(startIdx);
-  const annualRows=activeYears.map((y,i)=>{ const row={year:y}; TICKERS.forEach(t=>row[t]=safeReturn(t,startIdx+i)); return row; });
-  renderMainChart(growthRows,annualRows);
+  // Annual returns for bar chart
+  const annualRows = [];
+  for(let y = startYear; y <= 2025; y++){
+    const row = {year: y};
+    TICKERS.forEach(t => { row[t] = annualReturn(t, y); });
+    annualRows.push(row);
+  }
+  renderMainChart(growthRows, annualRows);
 }
 
 // ══════════════════════════════════════════════════
 // MAIN CHART
 // ══════════════════════════════════════════════════
-function renderMainChart(growthRows,annualRows){
-  const ctx=document.getElementById("mainChart").getContext("2d");
-  if(mainChart){mainChart.destroy();mainChart=null;}
-  const active=TICKERS.filter(t=>(allocations[t]||0)>0);
-  if(currentTab==="growth"){
-    mainChart=new Chart(ctx,{type:"line",
-      data:{labels:growthRows.map(r=>r.year),datasets:[
-        ...active.map(t=>({label:t,data:growthRows.map(r=>r[t]),borderColor:COLORS[t],backgroundColor:"transparent",borderWidth:2,pointRadius:0,tension:0.3})),
-        {label:"Portfolio",data:growthRows.map(r=>r.Portfolio),borderColor:"#fff",backgroundColor:"transparent",borderWidth:2.5,pointRadius:0,borderDash:[6,3],tension:0.3}
+function renderMainChart(growthRows, annualRows){
+  const ctx = document.getElementById("mainChart").getContext("2d");
+  if(mainChart){mainChart.destroy(); mainChart = null;}
+  const active = TICKERS.filter(t => (allocations[t]||0) > 0);
+  if(currentTab === "growth"){
+    mainChart = new Chart(ctx, {type:"line",
+      data:{labels: growthRows.map(r => r.label), datasets:[
+        ...active.map(t => ({label:t, data:growthRows.map(r => r[t]), borderColor:COLORS[t], backgroundColor:"transparent", borderWidth:1.5, pointRadius:0, tension:0.3})),
+        {label:"Portfolio", data:growthRows.map(r => r.Portfolio), borderColor:"#fff", backgroundColor:"transparent", borderWidth:2, pointRadius:0, borderDash:[6,3], tension:0.3}
       ]},
-      options:{responsive:true,interaction:{mode:"index",intersect:false},
-        plugins:{legend:{labels:{color:"#9ca3af",boxWidth:12,font:{size:11}}},
-          tooltip:{backgroundColor:"#111827",borderColor:"#374151",borderWidth:1,titleColor:"#d1d5db",bodyColor:"#fff",callbacks:{label:c=>` ${c.dataset.label}: ${fmtK(c.parsed.y)}`}}},
-        scales:{x:{ticks:{color:"#6b7280",font:{size:11}},grid:{color:"#1f2937"}},y:{ticks:{color:"#6b7280",font:{size:11},callback:fmtK},grid:{color:"#1f2937"}}}}
+      options:{responsive:true, interaction:{mode:"index", intersect:false},
+        plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
+          tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
+            callbacks:{label:c => ` ${c.dataset.label}: ${fmtK(c.parsed.y)}`}}},
+        scales:{
+          x:{ticks:{color:"#6b7280", font:{size:10}, maxTicksLimit:15, maxRotation:45}, grid:{color:"#1f2937"}},
+          y:{ticks:{color:"#6b7280", font:{size:11}, callback:fmtK}, grid:{color:"#1f2937"}}
+        }}
     });
   } else {
-    mainChart=new Chart(ctx,{type:"bar",
-      data:{labels:annualRows.map(r=>r.year),datasets:active.map(t=>({label:t,data:annualRows.map(r=>r[t]),backgroundColor:COLORS[t]+"cc",borderColor:COLORS[t],borderWidth:1}))},
-      options:{responsive:true,interaction:{mode:"index",intersect:false},
-        plugins:{legend:{labels:{color:"#9ca3af",boxWidth:12,font:{size:11}}},
-          tooltip:{backgroundColor:"#111827",borderColor:"#374151",borderWidth:1,titleColor:"#d1d5db",bodyColor:"#fff",callbacks:{label:c=>` ${c.dataset.label}: ${fmtP(c.parsed.y,true)}`}}},
-        scales:{x:{ticks:{color:"#6b7280",font:{size:11}},grid:{color:"#1f2937"}},y:{ticks:{color:"#6b7280",font:{size:11},callback:v=>v+"%"},grid:{color:"#1f2937"}}}}
+    mainChart = new Chart(ctx, {type:"bar",
+      data:{labels: annualRows.map(r => r.year), datasets: active.map(t => ({label:t, data:annualRows.map(r => r[t]), backgroundColor:COLORS[t]+"cc", borderColor:COLORS[t], borderWidth:1}))},
+      options:{responsive:true, interaction:{mode:"index", intersect:false},
+        plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
+          tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
+            callbacks:{label:c => ` ${c.dataset.label}: ${fmtP(c.parsed.y,true)}`}}},
+        scales:{
+          x:{ticks:{color:"#6b7280", font:{size:11}}, grid:{color:"#1f2937"}},
+          y:{ticks:{color:"#6b7280", font:{size:11}, callback:v => v + "%"}, grid:{color:"#1f2937"}}
+        }}
     });
   }
 }
 
-function switchTab(tab,btn){
-  currentTab=tab;
-  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+function switchTab(tab, btn){
+  currentTab = tab;
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
   btn.classList.add("active"); update();
 }
 
@@ -622,213 +855,215 @@ function switchTab(tab,btn){
 // OPTIMIZER SHARED UTILITIES
 // ══════════════════════════════════════════════════
 function randomPortfolio(tickers=TICKERS){
-  const n=tickers.length;
-  const units=new Array(n).fill(0); let rem=100;
-  for(let i=0;i<n-1;i++){ units[i]=Math.floor(Math.random()*(rem+1)); rem-=units[i]; }
-  units[n-1]=rem;
-  for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[units[i],units[j]]=[units[j],units[i]];}
-  return Object.fromEntries(tickers.map((t,i)=>[t,units[i]*1000]));
+  const n = tickers.length;
+  const units = new Array(n).fill(0); let rem = 100;
+  for(let i = 0; i < n - 1; i++){ units[i] = Math.floor(Math.random() * (rem + 1)); rem -= units[i]; }
+  units[n-1] = rem;
+  for(let i = n - 1; i > 0; i--){const j = Math.floor(Math.random() * (i+1)); [units[i],units[j]] = [units[j],units[i]];}
+  return Object.fromEntries(tickers.map((t,i) => [t, units[i] * 1000]));
 }
 
-function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iterations=8000){
-  const len=windowLen??(ALL_YEARS.length-startIdx);
-  let cur={...startAlloc};
-  let{cagr,dd}=calcPortfolio(cur,startIdx,len,tickers);
-  let best=scoreFunc(cagr,dd,w);
-  for(let i=0;i<iterations;i++){
-    const a=Math.floor(Math.random()*tickers.length);
-    let b=Math.floor(Math.random()*(tickers.length-1)); if(b>=a)b++;
-    if((cur[tickers[a]]||0)<1000) continue;
-    const nxt={...cur}; nxt[tickers[a]]-=1000; nxt[tickers[b]]=(nxt[tickers[b]]||0)+1000;
-    const{cagr:nc,dd:nd}=calcPortfolio(nxt,startIdx,len,tickers);
-    const ns=scoreFunc(nc,nd,w);
-    if(ns>best){best=ns;cur=nxt;cagr=nc;dd=nd;}
+function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iterations=3000){
+  const len = windowLen ?? (NUM_MONTHS - startIdx);
+  let cur = {...startAlloc};
+  let {cagr, dd} = calcPortfolio(cur, startIdx, len, tickers);
+  let best = scoreFunc(cagr, dd, w);
+  for(let i = 0; i < iterations; i++){
+    const a = Math.floor(Math.random() * tickers.length);
+    let b = Math.floor(Math.random() * (tickers.length - 1)); if(b >= a) b++;
+    if((cur[tickers[a]]||0) < 1000) continue;
+    const nxt = {...cur}; nxt[tickers[a]] -= 1000; nxt[tickers[b]] = (nxt[tickers[b]]||0) + 1000;
+    const {cagr:nc, dd:nd} = calcPortfolio(nxt, startIdx, len, tickers);
+    const ns = scoreFunc(nc, nd, w);
+    if(ns > best){best = ns; cur = nxt; cagr = nc; dd = nd;}
   }
-  return{alloc:cur,cagr,dd};
+  return {alloc:cur, cagr, dd};
 }
 
 // ══════════════════════════════════════════════════
 // MAIN OPTIMIZER
 // ══════════════════════════════════════════════════
 function onSliderChange(){
-  const w=+document.getElementById("riskSlider").value;
-  document.getElementById("sliderVal").textContent=w===0?"Max Return (w=0)":w===2?"Min Drawdown (w=2)":`Balanced (w=${w.toFixed(1)})`;
+  const w = +document.getElementById("riskSlider").value;
+  document.getElementById("sliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
   if(frontierData) highlightBest(w);
 }
 
 async function runOptimizer(){
-  const startIdx=ALL_YEARS.indexOf(+document.getElementById("startYear").value);
-  const w=+document.getElementById("riskSlider").value;
-  const btn=document.getElementById("runBtn");
-  const fill=document.getElementById("progressFill");
-  document.getElementById("progressBar").style.display="block";
-  btn.disabled=true; fill.style.width="0%";
-  document.getElementById("optStatus").textContent="Sampling 2,000 portfolios…";
+  const startIdx = getStartIdx();
+  const w = +document.getElementById("riskSlider").value;
+  const btn = document.getElementById("runBtn");
+  const fill = document.getElementById("progressFill");
+  document.getElementById("progressBar").style.display = "block";
+  btn.disabled = true; fill.style.width = "0%";
+  document.getElementById("optStatus").textContent = "Sampling 800 portfolios\u2026";
   await tick();
 
-  const SAMPLES=2000, points=[];
-  for(let i=0;i<SAMPLES;i++){
-    const alloc=randomPortfolio();
-    const{cagr,dd}=calcPortfolio(alloc,startIdx);
-    points.push({cagr,dd,alloc});
-    if(i%400===0){fill.style.width=(i/SAMPLES*55)+"%"; await tick();}
+  const SAMPLES = 800, points = [];
+  for(let i = 0; i < SAMPLES; i++){
+    const alloc = randomPortfolio();
+    const {cagr, dd} = calcPortfolio(alloc, startIdx);
+    points.push({cagr, dd, alloc});
+    if(i % 160 === 0){fill.style.width = (i / SAMPLES * 55) + "%"; await tick();}
   }
 
-  document.getElementById("optStatus").textContent="Hill-climbing from best seed…";
-  fill.style.width="60%"; await tick();
+  document.getElementById("optStatus").textContent = "Hill-climbing from best seed\u2026";
+  fill.style.width = "60%"; await tick();
 
-  let seedIdx=0,bestSeed=-Infinity;
-  points.forEach((p,i)=>{const s=scoreFunc(p.cagr,p.dd,w);if(s>bestSeed){bestSeed=s;seedIdx=i;}});
+  let seedIdx = 0, bestSeed = -Infinity;
+  points.forEach((p,i) => {const s = scoreFunc(p.cagr, p.dd, w); if(s > bestSeed){bestSeed = s; seedIdx = i;}});
 
-  const{alloc:optAlloc,cagr:optCagr,dd:optDD}=hillClimb(points[seedIdx].alloc,startIdx,w,null,TICKERS);
-  fill.style.width="100%";
-  document.getElementById("optStatus").textContent=`Done — 2,000 samples + hill-climb complete.`;
-  btn.disabled=false;
-  setTimeout(()=>{document.getElementById("progressBar").style.display="none";fill.style.width="0%";},700);
+  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, null, TICKERS);
+  fill.style.width = "100%";
+  document.getElementById("optStatus").textContent = `Done \u2014 800 samples + hill-climb complete.`;
+  btn.disabled = false;
+  setTimeout(() => {document.getElementById("progressBar").style.display = "none"; fill.style.width = "0%";}, 700);
 
-  frontierData={points,optPoint:{cagr:optCagr,dd:optDD,alloc:optAlloc}};
-  previewAlloc=optAlloc;
-  renderFrontier(w,frontierData.optPoint);
+  frontierData = {points, optPoint:{cagr:optCagr, dd:optDD, alloc:optAlloc}};
+  previewAlloc = optAlloc;
+  renderFrontier(w, frontierData.optPoint);
   renderOptResult(frontierData.optPoint);
 }
 
 function highlightBest(w){
-  if(!frontierData)return;
-  let bestIdx=0,bestS=-Infinity;
-  frontierData.points.forEach((p,i)=>{const s=scoreFunc(p.cagr,p.dd,w);if(s>bestS){bestS=s;bestIdx=i;}});
-  const optS=scoreFunc(frontierData.optPoint.cagr,frontierData.optPoint.dd,w);
-  const hl=optS>bestS?frontierData.optPoint:frontierData.points[bestIdx];
-  renderFrontier(w,hl); renderOptResult(hl); previewAlloc=hl.alloc;
+  if(!frontierData) return;
+  let bestIdx = 0, bestS = -Infinity;
+  frontierData.points.forEach((p,i) => {const s = scoreFunc(p.cagr, p.dd, w); if(s > bestS){bestS = s; bestIdx = i;}});
+  const optS = scoreFunc(frontierData.optPoint.cagr, frontierData.optPoint.dd, w);
+  const hl = optS > bestS ? frontierData.optPoint : frontierData.points[bestIdx];
+  renderFrontier(w, hl); renderOptResult(hl); previewAlloc = hl.alloc;
 }
 
 function computePareto(points){
-  const sorted=[...points].sort((a,b)=>a.cagr-b.cagr);
-  const pareto=[]; let minDD=Infinity;
-  sorted.forEach(p=>{if(p.dd<minDD){minDD=p.dd;pareto.push(p);}});
+  const sorted = [...points].sort((a,b) => a.cagr - b.cagr);
+  const pareto = []; let minDD = Infinity;
+  sorted.forEach(p => {if(p.dd < minDD){minDD = p.dd; pareto.push(p);}});
   return pareto;
 }
 
-function renderFrontier(w,highlighted){
-  const ctx=document.getElementById("frontierChart").getContext("2d");
-  if(frontierChart){frontierChart.destroy();frontierChart=null;}
-  if(!frontierData)return;
-  const{points,optPoint}=frontierData;
-  const hl=highlighted||optPoint;
-  const pareto=computePareto(points);
-  const ptAllocs=[...points];
-  frontierChart=new Chart(ctx,{type:"scatter",
+function renderFrontier(w, highlighted){
+  const ctx = document.getElementById("frontierChart").getContext("2d");
+  if(frontierChart){frontierChart.destroy(); frontierChart = null;}
+  if(!frontierData) return;
+  const {points, optPoint} = frontierData;
+  const hl = highlighted || optPoint;
+  const pareto = computePareto(points);
+  const ptAllocs = [...points];
+  frontierChart = new Chart(ctx, {type:"scatter",
     data:{datasets:[
-      {label:"Sampled",data:points.map(p=>({x:+p.cagr.toFixed(2),y:+p.dd.toFixed(2)})),backgroundColor:"rgba(59,130,246,0.2)",borderColor:"rgba(59,130,246,0.5)",pointRadius:3,pointHoverRadius:6},
-      {label:"Pareto edge",data:pareto.map(p=>({x:+p.cagr.toFixed(2),y:+p.dd.toFixed(2)})),backgroundColor:"rgba(251,191,36,0.6)",borderColor:"#fbbf24",pointRadius:4,pointHoverRadius:6},
-      {label:"★ Optimized",data:[{x:+optPoint.cagr.toFixed(2),y:+optPoint.dd.toFixed(2)}],backgroundColor:"#4ade80",borderColor:"#16a34a",pointRadius:10,pointHoverRadius:12,pointStyle:"star"},
-      {label:"◉ Selected",data:[{x:+hl.cagr.toFixed(2),y:+hl.dd.toFixed(2)}],backgroundColor:"rgba(255,255,255,0.9)",borderColor:"#fff",pointRadius:7,pointHoverRadius:9}
+      {label:"Sampled", data:points.map(p => ({x:+p.cagr.toFixed(2), y:+p.dd.toFixed(2)})), backgroundColor:"rgba(59,130,246,0.2)", borderColor:"rgba(59,130,246,0.5)", pointRadius:3, pointHoverRadius:6},
+      {label:"Pareto edge", data:pareto.map(p => ({x:+p.cagr.toFixed(2), y:+p.dd.toFixed(2)})), backgroundColor:"rgba(251,191,36,0.6)", borderColor:"#fbbf24", pointRadius:4, pointHoverRadius:6},
+      {label:"\u2605 Optimized", data:[{x:+optPoint.cagr.toFixed(2), y:+optPoint.dd.toFixed(2)}], backgroundColor:"#4ade80", borderColor:"#16a34a", pointRadius:10, pointHoverRadius:12, pointStyle:"star"},
+      {label:"\u25c9 Selected", data:[{x:+hl.cagr.toFixed(2), y:+hl.dd.toFixed(2)}], backgroundColor:"rgba(255,255,255,0.9)", borderColor:"#fff", pointRadius:7, pointHoverRadius:9}
     ]},
-    options:{responsive:true,onClick:(evt)=>onFrontierClick(evt,ptAllocs,pareto),
-      plugins:{legend:{labels:{color:"#9ca3af",boxWidth:10,font:{size:10}}},
-        tooltip:{backgroundColor:"#111827",borderColor:"#374151",borderWidth:1,titleColor:"#d1d5db",bodyColor:"#fff",
-          callbacks:{title:()=>"Portfolio",label:c=>` CAGR: ${c.parsed.x.toFixed(1)}%   Max DD: ${c.parsed.y.toFixed(1)}%`}}},
+    options:{responsive:true, onClick:(evt) => onFrontierClick(evt, ptAllocs, pareto),
+      plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
+        tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
+          callbacks:{title:()=>"Portfolio", label:c => ` CAGR: ${c.parsed.x.toFixed(1)}%   Max DD: ${c.parsed.y.toFixed(1)}%`}}},
       scales:{
-        x:{title:{display:true,text:"CAGR (%)",color:"#6b7280",font:{size:11}},ticks:{color:"#6b7280",font:{size:10}},grid:{color:"#1f2937"}},
-        y:{title:{display:true,text:"Max Drawdown (%)",color:"#6b7280",font:{size:11}},ticks:{color:"#6b7280",font:{size:10}},grid:{color:"#1f2937"}}
+        x:{title:{display:true, text:"CAGR (%)", color:"#6b7280", font:{size:11}}, ticks:{color:"#6b7280", font:{size:10}}, grid:{color:"#1f2937"}},
+        y:{title:{display:true, text:"Max Drawdown (%)", color:"#6b7280", font:{size:11}}, ticks:{color:"#6b7280", font:{size:10}}, grid:{color:"#1f2937"}}
       }}
   });
 }
 
-function onFrontierClick(evt,ptAllocs,pareto){
-  if(!frontierChart||!frontierData)return;
-  const els=frontierChart.getElementsAtEventForMode(evt,"nearest",{radius:12,intersect:false},false);
-  if(!els.length)return;
-  const{datasetIndex,index}=els[0];
+function onFrontierClick(evt, ptAllocs, pareto){
+  if(!frontierChart || !frontierData) return;
+  const els = frontierChart.getElementsAtEventForMode(evt, "nearest", {radius:12, intersect:false}, false);
+  if(!els.length) return;
+  const {datasetIndex, index} = els[0];
   let clicked;
-  if(datasetIndex===0) clicked=ptAllocs[index];
-  else if(datasetIndex===1) clicked=pareto[index];
-  else clicked=frontierData.optPoint;
-  if(!clicked)return;
-  previewAlloc=clicked.alloc;
+  if(datasetIndex === 0) clicked = ptAllocs[index];
+  else if(datasetIndex === 1) clicked = pareto[index];
+  else clicked = frontierData.optPoint;
+  if(!clicked) return;
+  previewAlloc = clicked.alloc;
   renderOptResult(clicked);
-  renderFrontier(+document.getElementById("riskSlider").value,clicked);
+  renderFrontier(+document.getElementById("riskSlider").value, clicked);
 }
 
 function renderOptResult(pt){
-  const inner=document.getElementById("optResultInner");
-  const w=+document.getElementById("riskSlider").value;
-  const maxAlloc=Math.max(...TICKERS.map(t=>pt.alloc[t]||0),1);
-  inner.innerHTML=`
+  const inner = document.getElementById("optResultInner");
+  const w = +document.getElementById("riskSlider").value;
+  const maxAlloc = Math.max(...TICKERS.map(t => pt.alloc[t]||0), 1);
+  inner.innerHTML = `
     <div class="opt-metrics">
       <div class="opt-metric"><div class="opt-metric-label">CAGR</div><div class="opt-metric-val green">${fmtP(pt.cagr)}</div></div>
       <div class="opt-metric"><div class="opt-metric-label">Max Drawdown</div><div class="opt-metric-val red">-${fmtP(pt.dd)}</div></div>
-      <div class="opt-metric"><div class="opt-metric-label">Score (CAGR/DD^w)</div><div class="opt-metric-val blue">${scoreFunc(pt.cagr,pt.dd,w).toFixed(2)}</div></div>
-      <div class="opt-metric"><div class="opt-metric-label">Total</div><div class="opt-metric-val">${fmtK(TICKERS.reduce((s,t)=>s+(pt.alloc[t]||0),0))}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Score (CAGR/DD^w)</div><div class="opt-metric-val blue">${scoreFunc(pt.cagr, pt.dd, w).toFixed(2)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Total</div><div class="opt-metric-val">${fmtK(TICKERS.reduce((s,t) => s + (pt.alloc[t]||0), 0))}</div></div>
     </div>
     <div style="margin-bottom:4px">
-      ${TICKERS.map(t=>`
+      ${TICKERS.map(t => `
         <div class="opt-alloc-row">
           <span class="opt-ticker" style="color:${COLORS[t]}">${t}</span>
-          <div class="opt-bar-wrap"><div class="opt-bar" style="width:${((pt.alloc[t]||0)/maxAlloc*100).toFixed(1)}%;background:${COLORS[t]}"></div></div>
+          <div class="opt-bar-wrap"><div class="opt-bar" style="width:${((pt.alloc[t]||0) / maxAlloc * 100).toFixed(1)}%;background:${COLORS[t]}"></div></div>
           <span class="opt-val">${fmtK(pt.alloc[t]||0)}</span>
         </div>`).join("")}
     </div>
-    <button class="apply-btn" onclick="applyOptimal()">Apply This Allocation ↑</button>`;
+    <button class="apply-btn" onclick="applyOptimal()">Apply This Allocation \u2191</button>`;
 }
 
 function applyOptimal(){
-  if(!previewAlloc)return;
-  const rounded=Object.fromEntries(TICKERS.map(t=>[t,Math.round((previewAlloc[t]||0)/5000)*5000]));
-  let diff=100000-TICKERS.reduce((s,t)=>s+(rounded[t]||0),0);
-  if(diff!==0){ const biggest=TICKERS.slice().sort((a,b)=>(rounded[b]||0)-(rounded[a]||0))[0]; rounded[biggest]+=diff; }
-  allocations=rounded; setDropdowns(allocations); update();
-  window.scrollTo({top:0,behavior:"smooth"});
+  if(!previewAlloc) return;
+  const rounded = Object.fromEntries(TICKERS.map(t => [t, Math.round((previewAlloc[t]||0) / 5000) * 5000]));
+  let diff = 100000 - TICKERS.reduce((s,t) => s + (rounded[t]||0), 0);
+  if(diff !== 0){ const biggest = TICKERS.slice().sort((a,b) => (rounded[b]||0) - (rounded[a]||0))[0]; rounded[biggest] += diff; }
+  allocations = rounded; setDropdowns(allocations); update();
+  window.scrollTo({top:0, behavior:"smooth"});
 }
 
 // ══════════════════════════════════════════════════
-// ROLLING WINDOW OPTIMIZER
+// ROLLING WINDOW OPTIMIZER (60-month windows)
 // ══════════════════════════════════════════════════
 function onRwSliderChange(){
-  const w=+document.getElementById("rwRiskSlider").value;
-  document.getElementById("rwSliderVal").textContent=w===0?"Max Return (w=0)":w===2?"Min Drawdown (w=2)":`Balanced (w=${w.toFixed(1)})`;
+  const w = +document.getElementById("rwRiskSlider").value;
+  document.getElementById("rwSliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
 }
 
 async function runRollingOptimizer(){
   const w    = +document.getElementById("rwRiskSlider").value;
   const btn  = document.getElementById("rwRunBtn");
   const fill = document.getElementById("rwProgressFill");
-  document.getElementById("rwProgressBar").style.display="block";
-  btn.disabled=true; fill.style.width="0%";
+  document.getElementById("rwProgressBar").style.display = "block";
+  btn.disabled = true; fill.style.width = "0%";
 
-  const windows=[];
-  for(let i=0;i<=ALL_YEARS.length-WINDOW;i++)
-    windows.push({startIdx:i, label:`${ALL_YEARS[i]}–${ALL_YEARS[i+WINDOW-1].toString().slice(2)}`});
-
-  const SAMPLES_PER=800, results=[];
-  for(let wi=0;wi<windows.length;wi++){
-    const{startIdx,label}=windows[wi];
-    document.getElementById("rwStatus").textContent=`Window ${wi+1}/${windows.length}: ${label}…`;
-    fill.style.width=((wi/windows.length)*85)+"%";
-    await tick();
-
-    // Sample from RW_TICKERS only (excludes JEPI)
-    let bestSeed=null, bestScore=-Infinity;
-    for(let s=0;s<SAMPLES_PER;s++){
-      const alloc=randomPortfolio(RW_TICKERS);
-      // pad with 0 for JEPI
-      TICKERS.filter(t=>!RW_TICKERS.includes(t)).forEach(t=>alloc[t]=0);
-      const{cagr,dd}=calcPortfolio(alloc,startIdx,WINDOW,RW_TICKERS);
-      const sc=scoreFunc(cagr,dd,w);
-      if(sc>bestScore){bestScore=sc;bestSeed=alloc;}
-    }
-
-    const{alloc:optAlloc,cagr:optCagr,dd:optDD}=hillClimb(bestSeed,startIdx,w,WINDOW,RW_TICKERS,5000);
-    // ensure JEPI=0
-    TICKERS.filter(t=>!RW_TICKERS.includes(t)).forEach(t=>optAlloc[t]=0);
-    results.push({label,startIdx,alloc:optAlloc,cagr:optCagr,dd:optDD,score:scoreFunc(optCagr,optDD,w)});
+  // 10 windows: Jan 2012–Dec 2016 through Jan 2021–Dec 2025, stepping by 12 months
+  const windows = [];
+  for(let yearOff = 0; yearOff <= 9; yearOff++){
+    const startIdx = yearOff * 12;
+    const startYear = 2012 + yearOff;
+    const endYear = startYear + 4;
+    windows.push({startIdx, label:`${startYear}\u2013${String(endYear).slice(2)}`});
   }
 
-  fill.style.width="100%";
-  document.getElementById("rwStatus").textContent=`Done — ${windows.length} windows optimized.`;
-  btn.disabled=false;
-  setTimeout(()=>{document.getElementById("rwProgressBar").style.display="none";fill.style.width="0%";},700);
+  const SAMPLES_PER = 800, results = [];
+  for(let wi = 0; wi < windows.length; wi++){
+    const {startIdx, label} = windows[wi];
+    document.getElementById("rwStatus").textContent = `Window ${wi+1}/${windows.length}: ${label}\u2026`;
+    fill.style.width = ((wi / windows.length) * 85) + "%";
+    await tick();
 
-  document.getElementById("rwResults").style.display="block";
+    let bestSeed = null, bestScore = -Infinity;
+    for(let s = 0; s < SAMPLES_PER; s++){
+      const alloc = randomPortfolio(RW_TICKERS);
+      TICKERS.filter(t => !RW_TICKERS.includes(t)).forEach(t => alloc[t] = 0);
+      const {cagr, dd} = calcPortfolio(alloc, startIdx, WINDOW_MONTHS, RW_TICKERS);
+      const sc = scoreFunc(cagr, dd, w);
+      if(sc > bestScore){bestScore = sc; bestSeed = alloc;}
+    }
+
+    const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(bestSeed, startIdx, w, WINDOW_MONTHS, RW_TICKERS, 5000);
+    TICKERS.filter(t => !RW_TICKERS.includes(t)).forEach(t => optAlloc[t] = 0);
+    results.push({label, startIdx, alloc:optAlloc, cagr:optCagr, dd:optDD, score:scoreFunc(optCagr, optDD, w)});
+  }
+
+  fill.style.width = "100%";
+  document.getElementById("rwStatus").textContent = `Done \u2014 ${windows.length} windows optimized (60-month each).`;
+  btn.disabled = false;
+  setTimeout(() => {document.getElementById("rwProgressBar").style.display = "none"; fill.style.width = "0%";}, 700);
+
+  document.getElementById("rwResults").style.display = "block";
   renderRwInsights(results);
   renderRwAllocChart(results);
   renderRwPerfChart(results);
@@ -836,102 +1071,102 @@ async function runRollingOptimizer(){
 }
 
 function renderRwInsights(results){
-  const container=document.getElementById("rwInsights");
-  const avgAlloc=Object.fromEntries(RW_TICKERS.map(t=>[t,results.reduce((s,r)=>s+(r.alloc[t]||0),0)/results.length]));
-  const maxAvg=Math.max(...Object.values(avgAlloc),1);
-  const stability=Object.fromEntries(RW_TICKERS.map(t=>[t,stdDev(results.map(r=>r.alloc[t]||0))]));
-  const maxStd=Math.max(...Object.values(stability),1);
-  const consistency=Object.fromEntries(RW_TICKERS.map(t=>[t,results.filter(r=>(r.alloc[t]||0)>0).length]));
+  const container = document.getElementById("rwInsights");
+  const avgAlloc = Object.fromEntries(RW_TICKERS.map(t => [t, results.reduce((s,r) => s + (r.alloc[t]||0), 0) / results.length]));
+  const maxAvg = Math.max(...Object.values(avgAlloc), 1);
+  const stability = Object.fromEntries(RW_TICKERS.map(t => [t, stdDev(results.map(r => r.alloc[t]||0))]));
+  const maxStd = Math.max(...Object.values(stability), 1);
+  const consistency = Object.fromEntries(RW_TICKERS.map(t => [t, results.filter(r => (r.alloc[t]||0) > 0).length]));
 
-  container.innerHTML=`
+  container.innerHTML = `
     <div class="insight-card">
       <div class="insight-title">Average Allocation</div>
-      ${RW_TICKERS.sort((a,b)=>avgAlloc[b]-avgAlloc[a]).map(t=>`
+      ${RW_TICKERS.sort((a,b) => avgAlloc[b] - avgAlloc[a]).map(t => `
         <div class="insight-row">
           <span style="color:${COLORS[t]};font-weight:700;min-width:36px">${t}</span>
-          <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(avgAlloc[t]/maxAvg*100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
+          <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(avgAlloc[t] / maxAvg * 100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
           <span class="mono" style="min-width:42px;text-align:right">${fmtK(avgAlloc[t])}</span>
         </div>`).join("")}
     </div>
     <div class="insight-card">
       <div class="insight-title">Allocation Stability <span style="font-weight:400;color:#6b7280">(lower = stable)</span></div>
-      ${RW_TICKERS.sort((a,b)=>stability[a]-stability[b]).map(t=>`
+      ${RW_TICKERS.sort((a,b) => stability[a] - stability[b]).map(t => `
         <div class="insight-row">
           <span style="color:${COLORS[t]};font-weight:700;min-width:36px">${t}</span>
-          <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(stability[t]/maxStd*100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
-          <span class="mono ${stability[t]<10000?"green":stability[t]<20000?"amber":"red"}" style="min-width:42px;text-align:right">±${fmtK(stability[t])}</span>
+          <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(stability[t] / maxStd * 100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
+          <span class="mono ${stability[t] < 10000 ? "green" : stability[t] < 20000 ? "amber" : "red"}" style="min-width:42px;text-align:right">\u00b1${fmtK(stability[t])}</span>
         </div>`).join("")}
     </div>
     <div class="insight-card">
       <div class="insight-title">Consistency <span style="font-weight:400;color:#6b7280">(windows with &gt;$0)</span></div>
-      ${RW_TICKERS.sort((a,b)=>consistency[b]-consistency[a]).map(t=>`
+      ${RW_TICKERS.sort((a,b) => consistency[b] - consistency[a]).map(t => `
         <div class="insight-row">
           <span style="color:${COLORS[t]};font-weight:700;min-width:36px">${t}</span>
-          <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(consistency[t]/results.length*100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
-          <span class="mono ${consistency[t]===results.length?"green":consistency[t]>=results.length*.75?"amber":"red"}" style="min-width:42px;text-align:right">${consistency[t]}/${results.length}</span>
+          <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(consistency[t] / results.length * 100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
+          <span class="mono ${consistency[t] === results.length ? "green" : consistency[t] >= results.length * .75 ? "amber" : "red"}" style="min-width:42px;text-align:right">${consistency[t]}/${results.length}</span>
         </div>`).join("")}
     </div>`;
 }
 
 function renderRwAllocChart(results){
-  const ctx=document.getElementById("rwAllocChart").getContext("2d");
-  if(rwAllocChart){rwAllocChart.destroy();rwAllocChart=null;}
-  rwAllocChart=new Chart(ctx,{type:"bar",
-    data:{labels:results.map(r=>r.label),
-      datasets:RW_TICKERS.map(t=>({label:t,data:results.map(r=>(r.alloc[t]||0)/1000),backgroundColor:COLORS[t]+"cc",borderColor:COLORS[t],borderWidth:1}))},
+  const ctx = document.getElementById("rwAllocChart").getContext("2d");
+  if(rwAllocChart){rwAllocChart.destroy(); rwAllocChart = null;}
+  rwAllocChart = new Chart(ctx, {type:"bar",
+    data:{labels:results.map(r => r.label),
+      datasets:RW_TICKERS.map(t => ({label:t, data:results.map(r => (r.alloc[t]||0) / 1000), backgroundColor:COLORS[t]+"cc", borderColor:COLORS[t], borderWidth:1}))},
     options:{responsive:true,
-      plugins:{legend:{labels:{color:"#9ca3af",boxWidth:10,font:{size:10}}},
-        tooltip:{backgroundColor:"#111827",borderColor:"#374151",borderWidth:1,titleColor:"#d1d5db",bodyColor:"#fff",
-          callbacks:{label:c=>` ${c.dataset.label}: $${c.parsed.y}K`}}},
-      scales:{x:{stacked:true,ticks:{color:"#6b7280",font:{size:10}},grid:{color:"#1f2937"}},
-              y:{stacked:true,ticks:{color:"#6b7280",font:{size:10},callback:v=>v+"K"},grid:{color:"#1f2937"},
-                 title:{display:true,text:"Allocation ($K)",color:"#6b7280",font:{size:10}}}}}
+      plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
+        tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
+          callbacks:{label:c => ` ${c.dataset.label}: $${c.parsed.y}K`}}},
+      scales:{x:{stacked:true, ticks:{color:"#6b7280", font:{size:10}}, grid:{color:"#1f2937"}},
+              y:{stacked:true, ticks:{color:"#6b7280", font:{size:10}, callback:v => v+"K"}, grid:{color:"#1f2937"},
+                 title:{display:true, text:"Allocation ($K)", color:"#6b7280", font:{size:10}}}}}
   });
 }
 
 function renderRwPerfChart(results){
-  const ctx=document.getElementById("rwPerfChart").getContext("2d");
-  if(rwPerfChart){rwPerfChart.destroy();rwPerfChart=null;}
-  rwPerfChart=new Chart(ctx,{type:"line",
-    data:{labels:results.map(r=>r.label),datasets:[
-      {label:"CAGR (%)",data:results.map(r=>+r.cagr.toFixed(1)),borderColor:"#4ade80",backgroundColor:"transparent",borderWidth:2,pointRadius:4,yAxisID:"y"},
-      {label:"Max Drawdown (%)",data:results.map(r=>+r.dd.toFixed(1)),borderColor:"#f87171",backgroundColor:"transparent",borderWidth:2,pointRadius:4,borderDash:[4,3],yAxisID:"y"}
+  const ctx = document.getElementById("rwPerfChart").getContext("2d");
+  if(rwPerfChart){rwPerfChart.destroy(); rwPerfChart = null;}
+  rwPerfChart = new Chart(ctx, {type:"line",
+    data:{labels:results.map(r => r.label), datasets:[
+      {label:"CAGR (%)", data:results.map(r => +r.cagr.toFixed(1)), borderColor:"#4ade80", backgroundColor:"transparent", borderWidth:2, pointRadius:4, yAxisID:"y"},
+      {label:"Max Drawdown (%)", data:results.map(r => +r.dd.toFixed(1)), borderColor:"#f87171", backgroundColor:"transparent", borderWidth:2, pointRadius:4, borderDash:[4,3], yAxisID:"y"}
     ]},
-    options:{responsive:true,interaction:{mode:"index",intersect:false},
-      plugins:{legend:{labels:{color:"#9ca3af",boxWidth:10,font:{size:10}}},
-        tooltip:{backgroundColor:"#111827",borderColor:"#374151",borderWidth:1,titleColor:"#d1d5db",bodyColor:"#fff",
-          callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}},
-      scales:{x:{ticks:{color:"#6b7280",font:{size:10}},grid:{color:"#1f2937"}},
-              y:{ticks:{color:"#6b7280",font:{size:10},callback:v=>v+"%"},grid:{color:"#1f2937"},
-                 title:{display:true,text:"%",color:"#6b7280",font:{size:10}}}}}
+    options:{responsive:true, interaction:{mode:"index", intersect:false},
+      plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
+        tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
+          callbacks:{label:c => ` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}},
+      scales:{x:{ticks:{color:"#6b7280", font:{size:10}}, grid:{color:"#1f2937"}},
+              y:{ticks:{color:"#6b7280", font:{size:10}, callback:v => v+"%"}, grid:{color:"#1f2937"},
+                 title:{display:true, text:"%", color:"#6b7280", font:{size:10}}}}}
   });
 }
 
 function renderRwTable(results){
-  document.getElementById("rwTableHead").innerHTML=`<tr>
+  document.getElementById("rwTableHead").innerHTML = `<tr>
     <th class="left">Window</th>
-    ${RW_TICKERS.map(t=>`<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}
+    ${RW_TICKERS.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}
     <th class="right green">CAGR</th><th class="right red">Max DD</th><th class="right blue">Score</th>
   </tr>`;
-  const tbody=document.getElementById("rwTableBody"); tbody.innerHTML="";
-  results.forEach(r=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td class="left mono" style="font-weight:600">${r.label}</td>
-      ${RW_TICKERS.map(t=>`<td class="right mono ${(r.alloc[t]||0)===0?"muted":""}">${(r.alloc[t]||0)===0?"—":fmtK(r.alloc[t])}</td>`).join("")}
+  const tbody = document.getElementById("rwTableBody"); tbody.innerHTML = "";
+  results.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="left mono" style="font-weight:600">${r.label}</td>
+      ${RW_TICKERS.map(t => `<td class="right mono ${(r.alloc[t]||0) === 0 ? "muted" : ""}">${(r.alloc[t]||0) === 0 ? "\u2014" : fmtK(r.alloc[t])}</td>`).join("")}
       <td class="right green">${fmtP(r.cagr)}</td>
       <td class="right red">-${fmtP(r.dd)}</td>
       <td class="right blue">${r.score.toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
-  const avgCagr=results.reduce((s,r)=>s+r.cagr,0)/results.length;
-  const avgDD  =results.reduce((s,r)=>s+r.dd,0)/results.length;
-  const avgAlloc=Object.fromEntries(RW_TICKERS.map(t=>[t,Math.round(results.reduce((s,r)=>s+(r.alloc[t]||0),0)/results.length)]));
-  const tr=document.createElement("tr"); tr.className="portfolio-row";
-  tr.innerHTML=`<td class="left">Average</td>
-    ${RW_TICKERS.map(t=>`<td class="right mono">${fmtK(avgAlloc[t])}</td>`).join("")}
+  const avgCagr = results.reduce((s,r) => s + r.cagr, 0) / results.length;
+  const avgDD   = results.reduce((s,r) => s + r.dd, 0) / results.length;
+  const avgAlloc = Object.fromEntries(RW_TICKERS.map(t => [t, Math.round(results.reduce((s,r) => s + (r.alloc[t]||0), 0) / results.length)]));
+  const tr = document.createElement("tr"); tr.className = "portfolio-row";
+  tr.innerHTML = `<td class="left">Average</td>
+    ${RW_TICKERS.map(t => `<td class="right mono">${fmtK(avgAlloc[t])}</td>`).join("")}
     <td class="right green">${fmtP(avgCagr)}</td>
     <td class="right red">-${fmtP(avgDD)}</td>
-    <td class="right muted">—</td>`;
+    <td class="right muted">\u2014</td>`;
   tbody.appendChild(tr);
 }
 
