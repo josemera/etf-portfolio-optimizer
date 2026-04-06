@@ -268,6 +268,14 @@
     </table></div>
   </div>
 
+  <!-- Year-by-Year Drawdowns -->
+  <div class="table-wrap">
+    <div class="table-title">Year-by-Year Max Drawdown <span style="color:#6b7280;font-weight:400;font-size:11px">(intra-year peak-to-trough)</span></div>
+    <div class="scroll"><table>
+      <thead id="ybyDDHead"></thead><tbody id="ybyDDBody"></tbody>
+    </table></div>
+  </div>
+
   <hr class="divider">
 
   <!-- ══════════════════════ OPTIMIZER ══════════════════════ -->
@@ -279,6 +287,12 @@
       <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
       <span class="slider-label right-lbl">&darr; Min Drawdown</span>
       <span class="slider-val" id="sliderVal">Balanced (1.0)</span>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label left-lbl">&#9878; More Balanced</span>
+      <input type="range" id="maxTickerSlider" min="10" max="100" step="5" value="100" oninput="onMaxTickerChange()">
+      <span class="slider-label right-lbl">No Limit</span>
+      <span class="slider-val" id="maxTickerVal">No Limit</span>
     </div>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
       <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
@@ -315,6 +329,12 @@
       <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
       <span class="slider-label right-lbl">&darr; Min Drawdown</span>
       <span class="slider-val" id="rwSliderVal">Balanced (1.0)</span>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label left-lbl">&#9878; More Balanced</span>
+      <input type="range" id="rwMaxTickerSlider" min="10" max="100" step="5" value="100" oninput="onRwMaxTickerChange()">
+      <span class="slider-label right-lbl">No Limit</span>
+      <span class="slider-val" id="rwMaxTickerVal">No Limit</span>
     </div>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
       <button class="run-btn" id="rwRunBtn" onclick="runRollingOptimizer()">Run Rolling Analysis</button>
@@ -805,6 +825,38 @@ function update(){
     yb.appendChild(tr);
   }
 
+  // Year-by-Year Max Drawdown table
+  document.getElementById("ybyDDHead").innerHTML = `<tr><th class="left">Year</th>${TICKERS.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Portfolio</th></tr>`;
+  const ddb = document.getElementById("ybyDDBody"); ddb.innerHTML = "";
+  for(let year = startYear; year <= 2025; year++){
+    const janIdx = (year - 2012) * 12;
+    let portPeak = TICKERS.reduce((s,t) => s + (allocations[t]||0) * CUM[t][janIdx] / CUM[t][startIdx], 0), portMaxDD = 0;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="left mono muted">${year}</td>${TICKERS.map(t => {
+      if((allocations[t]||0) === 0) return `<td class="right mono muted">\u2014</td>`;
+      if(t === "JEPI" && year < 2020) return `<td class="right mono muted">\u2014</td>`;
+      let peak = CUM[t][janIdx], maxDD = 0;
+      for(let m = 1; m <= 12; m++){
+        const idx = janIdx + m; if(idx > NUM_MONTHS) break;
+        if(CUM[t][idx] > peak) peak = CUM[t][idx];
+        const dd = (peak - CUM[t][idx]) / peak * 100;
+        if(dd > maxDD) maxDD = dd;
+      }
+      const cls = maxDD > 20 ? "red" : maxDD > 10 ? "" : "green";
+      return `<td class="right mono ${cls}">-${maxDD.toFixed(1)}%</td>`;
+    }).join("")}`;
+    for(let m = 1; m <= 12; m++){
+      const idx = janIdx + m; if(idx > NUM_MONTHS) break;
+      const portVal = TICKERS.reduce((s,t) => s + (allocations[t]||0) * CUM[t][idx] / CUM[t][startIdx], 0);
+      if(portVal > portPeak) portPeak = portVal;
+      const dd = (portPeak - portVal) / portPeak * 100;
+      if(dd > portMaxDD) portMaxDD = dd;
+    }
+    const portCls = portMaxDD > 20 ? "red" : portMaxDD > 10 ? "" : "green";
+    tr.innerHTML += `<td class="right mono ${portCls}" style="font-weight:700">-${portMaxDD.toFixed(1)}%</td>`;
+    ddb.appendChild(tr);
+  }
+
   // Annual returns for bar chart
   const annualRows = [];
   for(let y = startYear; y <= 2025; y++){
@@ -878,17 +930,35 @@ function switchTab(tab, btn){
 // ══════════════════════════════════════════════════
 // OPTIMIZER SHARED UTILITIES
 // ══════════════════════════════════════════════════
-function randomPortfolio(tickers=TICKERS){
+function randomPortfolio(tickers=TICKERS, maxUnits=100){
   const n = tickers.length;
-  const units = new Array(n).fill(0); let rem = 100;
-  for(let i = 0; i < n - 1; i++){ units[i] = Math.floor(Math.random() * (rem + 1)); rem -= units[i]; }
-  units[n-1] = rem;
-  for(let i = n - 1; i > 0; i--){const j = Math.floor(Math.random() * (i+1)); [units[i],units[j]] = [units[j],units[i]];}
-  return Object.fromEntries(tickers.map((t,i) => [t, units[i] * 1000]));
+  // cap per ticker in units (1 unit = $1K, total = 100 units)
+  const cap = Math.min(maxUnits, 100);
+  let alloc = Object.fromEntries(tickers.map(t => [t, 0]));
+  let rem = 100;
+  // distribute randomly respecting the cap
+  for(let i = 0; i < n - 1 && rem > 0; i++){
+    const maxForThis = Math.min(rem, cap);
+    alloc[tickers[i]] = Math.floor(Math.random() * (maxForThis + 1));
+    rem -= alloc[tickers[i]];
+  }
+  alloc[tickers[n-1]] = Math.min(rem, cap);
+  rem -= alloc[tickers[n-1]];
+  // redistribute any leftover (happens when cap is tight) round-robin
+  if(rem > 0){
+    for(let i = 0; i < n && rem > 0; i++){
+      const space = cap - alloc[tickers[i]];
+      if(space > 0){ const add = Math.min(space, rem); alloc[tickers[i]] += add; rem -= add; }
+    }
+  }
+  // shuffle order so no ticker is systematically favored
+  const shuffled = [...tickers].sort(() => Math.random() - 0.5);
+  return Object.fromEntries(shuffled.map(t => [t, alloc[t] * 1000]));
 }
 
-function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iterations=3000){
+function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iterations=3000, maxUnits=100, maxDD=Infinity){
   const len = windowLen ?? (NUM_MONTHS - startIdx);
+  const cap = maxUnits * 1000; // convert to dollars
   let cur = {...startAlloc};
   let {cagr, dd} = calcPortfolio(cur, startIdx, len, tickers);
   let best = scoreFunc(cagr, dd, w);
@@ -896,8 +966,10 @@ function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iteratio
     const a = Math.floor(Math.random() * tickers.length);
     let b = Math.floor(Math.random() * (tickers.length - 1)); if(b >= a) b++;
     if((cur[tickers[a]]||0) < 1000) continue;
+    if(((cur[tickers[b]]||0) + 1000) > cap) continue; // enforce cap
     const nxt = {...cur}; nxt[tickers[a]] -= 1000; nxt[tickers[b]] = (nxt[tickers[b]]||0) + 1000;
     const {cagr:nc, dd:nd} = calcPortfolio(nxt, startIdx, len, tickers);
+    if(nd > maxDD) continue; // enforce max drawdown constraint
     const ns = scoreFunc(nc, nd, w);
     if(ns > best){best = ns; cur = nxt; cagr = nc; dd = nd;}
   }
@@ -913,6 +985,21 @@ function onSliderChange(){
   if(frontierData) highlightBest(w);
 }
 
+function onMaxTickerChange(){
+  const v = +document.getElementById("maxTickerSlider").value;
+  document.getElementById("maxTickerVal").textContent = v >= 100 ? "No Limit" : `Max ${v}% / ticker`;
+}
+
+function onRwSliderChange(){
+  const w = +document.getElementById("rwRiskSlider").value;
+  document.getElementById("rwSliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
+}
+
+function onRwMaxTickerChange(){
+  const v = +document.getElementById("rwMaxTickerSlider").value;
+  document.getElementById("rwMaxTickerVal").textContent = v >= 100 ? "No Limit" : `Max ${v}% / ticker`;
+}
+
 async function runOptimizer(){
   const startIdx = getStartIdx();
   const w = +document.getElementById("riskSlider").value;
@@ -925,10 +1012,11 @@ async function runOptimizer(){
 
   const maxDDInput = parseFloat(document.getElementById("maxDDFilter").value);
   const maxDDThreshold = isNaN(maxDDInput) ? Infinity : maxDDInput;
+  const maxUnits = +document.getElementById("maxTickerSlider").value;
 
   const SAMPLES = 800, points = [];
   for(let i = 0; i < SAMPLES; i++){
-    const alloc = randomPortfolio();
+    const alloc = randomPortfolio(TICKERS, maxUnits);
     const {cagr, dd} = calcPortfolio(alloc, startIdx);
     if(dd <= maxDDThreshold) points.push({cagr, dd, alloc});
     if(i % 160 === 0){fill.style.width = (i / SAMPLES * 55) + "%"; await tick();}
@@ -948,7 +1036,7 @@ async function runOptimizer(){
   let seedIdx = 0, bestSeed = -Infinity;
   points.forEach((p,i) => {const s = scoreFunc(p.cagr, p.dd, w); if(s > bestSeed){bestSeed = s; seedIdx = i;}});
 
-  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, null, TICKERS);
+  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, null, TICKERS, 3000, maxUnits, maxDDThreshold);
   const filteredNote = maxDDThreshold < Infinity ? ` (DD \u2264 ${maxDDThreshold}%)` : "";
   fill.style.width = "100%";
   document.getElementById("optStatus").textContent = `Done \u2014 ${points.length} samples + hill-climb complete${filteredNote}.`;
@@ -957,6 +1045,7 @@ async function runOptimizer(){
 
   frontierData = {points, optPoint:{cagr:optCagr, dd:optDD, alloc:optAlloc}};
   previewAlloc = optAlloc;
+  if(frontierChart){frontierChart.destroy(); frontierChart = null;}
   renderFrontier(w, frontierData.optPoint);
   renderOptResult(frontierData.optPoint);
 }
@@ -1060,11 +1149,6 @@ function applyOptimal(){
 // ══════════════════════════════════════════════════
 // ROLLING WINDOW OPTIMIZER (60-month windows)
 // ══════════════════════════════════════════════════
-function onRwSliderChange(){
-  const w = +document.getElementById("rwRiskSlider").value;
-  document.getElementById("rwSliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
-}
-
 async function runRollingOptimizer(){
   const w    = +document.getElementById("rwRiskSlider").value;
   const btn  = document.getElementById("rwRunBtn");
@@ -1081,6 +1165,7 @@ async function runRollingOptimizer(){
     windows.push({startIdx, label:`${startYear}\u2013${String(endYear).slice(2)}`});
   }
 
+  const maxUnits = +document.getElementById("rwMaxTickerSlider").value;
   const SAMPLES_PER = 800, results = [];
   for(let wi = 0; wi < windows.length; wi++){
     const {startIdx, label} = windows[wi];
@@ -1090,14 +1175,14 @@ async function runRollingOptimizer(){
 
     let bestSeed = null, bestScore = -Infinity;
     for(let s = 0; s < SAMPLES_PER; s++){
-      const alloc = randomPortfolio(RW_TICKERS);
+      const alloc = randomPortfolio(RW_TICKERS, maxUnits);
       TICKERS.filter(t => !RW_TICKERS.includes(t)).forEach(t => alloc[t] = 0);
       const {cagr, dd} = calcPortfolio(alloc, startIdx, WINDOW_MONTHS, RW_TICKERS);
       const sc = scoreFunc(cagr, dd, w);
       if(sc > bestScore){bestScore = sc; bestSeed = alloc;}
     }
 
-    const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(bestSeed, startIdx, w, WINDOW_MONTHS, RW_TICKERS, 5000);
+    const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(bestSeed, startIdx, w, WINDOW_MONTHS, RW_TICKERS, 5000, maxUnits);
     TICKERS.filter(t => !RW_TICKERS.includes(t)).forEach(t => optAlloc[t] = 0);
     results.push({label, startIdx, alloc:optAlloc, cagr:optCagr, dd:optDD, score:scoreFunc(optCagr, optDD, w)});
   }
