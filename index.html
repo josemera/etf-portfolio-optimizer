@@ -243,6 +243,7 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('growth',this)">Growth Chart</button>
     <button class="tab" onclick="switchTab('annual',this)">Annual Returns</button>
+    <button class="tab" onclick="switchTab('gains',this)">% Gains</button>
   </div>
   <div class="chart-wrap"><canvas id="mainChart" height="340"></canvas></div>
 
@@ -281,6 +282,12 @@
     </div>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
       <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
+      <label style="color:#9ca3af;font-size:12px;display:flex;align-items:center;gap:6px;">
+        Max DD filter:
+        <input id="maxDDFilter" type="number" min="0" max="100" step="1" placeholder="none"
+          style="width:64px;background:#1f2937;border:1px solid #374151;border-radius:6px;color:#f9fafb;padding:4px 8px;font-size:12px;">
+        <span style="color:#6b7280">%</span>
+      </label>
       <span class="opt-status" id="optStatus">Set risk preference above, then click Run Optimizer.</span>
     </div>
     <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
@@ -830,6 +837,23 @@ function renderMainChart(growthRows, annualRows){
           y:{ticks:{color:"#6b7280", font:{size:11}, callback:fmtK}, grid:{color:"#1f2937"}}
         }}
     });
+  } else if(currentTab === "gains"){
+    const startRow = growthRows[0];
+    const toGainPct = (row, key) => startRow[key] > 0 ? (row[key] / startRow[key] - 1) * 100 : 0;
+    mainChart = new Chart(ctx, {type:"line",
+      data:{labels: growthRows.map(r => r.label), datasets:[
+        ...active.map(t => ({label:t, data:growthRows.map(r => toGainPct(r,t)), borderColor:COLORS[t], backgroundColor:"transparent", borderWidth:1.5, pointRadius:0, tension:0.3})),
+        {label:"Portfolio", data:growthRows.map(r => toGainPct(r,"Portfolio")), borderColor:"#fff", backgroundColor:"transparent", borderWidth:2, pointRadius:0, borderDash:[6,3], tension:0.3}
+      ]},
+      options:{responsive:true, interaction:{mode:"index", intersect:false},
+        plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
+          tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
+            callbacks:{label:c => ` ${c.dataset.label}: ${fmtP(c.parsed.y,true)}`}}},
+        scales:{
+          x:{ticks:{color:"#6b7280", font:{size:10}, maxTicksLimit:15, maxRotation:45}, grid:{color:"#1f2937"}},
+          y:{ticks:{color:"#6b7280", font:{size:11}, callback:v => v.toFixed(0)+"%"}, grid:{color:"#1f2937"}}
+        }}
+    });
   } else {
     mainChart = new Chart(ctx, {type:"bar",
       data:{labels: annualRows.map(r => r.year), datasets: active.map(t => ({label:t, data:annualRows.map(r => r[t]), backgroundColor:COLORS[t]+"cc", borderColor:COLORS[t], borderWidth:1}))},
@@ -899,23 +923,35 @@ async function runOptimizer(){
   document.getElementById("optStatus").textContent = "Sampling 800 portfolios\u2026";
   await tick();
 
+  const maxDDInput = parseFloat(document.getElementById("maxDDFilter").value);
+  const maxDDThreshold = isNaN(maxDDInput) ? Infinity : maxDDInput;
+
   const SAMPLES = 800, points = [];
   for(let i = 0; i < SAMPLES; i++){
     const alloc = randomPortfolio();
     const {cagr, dd} = calcPortfolio(alloc, startIdx);
-    points.push({cagr, dd, alloc});
+    if(dd <= maxDDThreshold) points.push({cagr, dd, alloc});
     if(i % 160 === 0){fill.style.width = (i / SAMPLES * 55) + "%"; await tick();}
   }
 
   document.getElementById("optStatus").textContent = "Hill-climbing from best seed\u2026";
   fill.style.width = "60%"; await tick();
 
+  if(points.length === 0){
+    fill.style.width = "100%";
+    document.getElementById("optStatus").textContent = "No portfolios found within that max drawdown limit.";
+    btn.disabled = false;
+    setTimeout(() => {document.getElementById("progressBar").style.display = "none"; fill.style.width = "0%";}, 700);
+    return;
+  }
+
   let seedIdx = 0, bestSeed = -Infinity;
   points.forEach((p,i) => {const s = scoreFunc(p.cagr, p.dd, w); if(s > bestSeed){bestSeed = s; seedIdx = i;}});
 
   const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, null, TICKERS);
+  const filteredNote = maxDDThreshold < Infinity ? ` (DD \u2264 ${maxDDThreshold}%)` : "";
   fill.style.width = "100%";
-  document.getElementById("optStatus").textContent = `Done \u2014 800 samples + hill-climb complete.`;
+  document.getElementById("optStatus").textContent = `Done \u2014 ${points.length} samples + hill-climb complete${filteredNote}.`;
   btn.disabled = false;
   setTimeout(() => {document.getElementById("progressBar").style.display = "none"; fill.style.width = "0%";}, 700);
 
@@ -943,20 +979,28 @@ function computePareto(points){
 
 function renderFrontier(w, highlighted){
   const ctx = document.getElementById("frontierChart").getContext("2d");
-  if(frontierChart){frontierChart.destroy(); frontierChart = null;}
   if(!frontierData) return;
   const {points, optPoint} = frontierData;
   const hl = highlighted || optPoint;
   const pareto = computePareto(points);
   const ptAllocs = [...points];
+  const selectedPt = {x:+hl.cagr.toFixed(2), y:+hl.dd.toFixed(2)};
+
+  // If chart already exists, just update the Selected dot in place (no redraw/animation)
+  if(frontierChart){
+    frontierChart.data.datasets[3].data = [selectedPt];
+    frontierChart.update("none");
+    return;
+  }
+
   frontierChart = new Chart(ctx, {type:"scatter",
     data:{datasets:[
       {label:"Sampled", data:points.map(p => ({x:+p.cagr.toFixed(2), y:+p.dd.toFixed(2)})), backgroundColor:"rgba(59,130,246,0.2)", borderColor:"rgba(59,130,246,0.5)", pointRadius:3, pointHoverRadius:6},
       {label:"Pareto edge", data:pareto.map(p => ({x:+p.cagr.toFixed(2), y:+p.dd.toFixed(2)})), backgroundColor:"rgba(251,191,36,0.6)", borderColor:"#fbbf24", pointRadius:4, pointHoverRadius:6},
       {label:"\u2605 Optimized", data:[{x:+optPoint.cagr.toFixed(2), y:+optPoint.dd.toFixed(2)}], backgroundColor:"#4ade80", borderColor:"#16a34a", pointRadius:10, pointHoverRadius:12, pointStyle:"star"},
-      {label:"\u25c9 Selected", data:[{x:+hl.cagr.toFixed(2), y:+hl.dd.toFixed(2)}], backgroundColor:"rgba(255,255,255,0.9)", borderColor:"#fff", pointRadius:7, pointHoverRadius:9}
+      {label:"\u25c9 Selected", data:[selectedPt], backgroundColor:"rgba(255,255,255,0.9)", borderColor:"#fff", pointRadius:7, pointHoverRadius:9}
     ]},
-    options:{responsive:true, onClick:(evt) => onFrontierClick(evt, ptAllocs, pareto),
+    options:{responsive:true, animation:false, onClick:(evt) => onFrontierClick(evt, ptAllocs, pareto),
       plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
         tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
           callbacks:{title:()=>"Portfolio", label:c => ` CAGR: ${c.parsed.x.toFixed(1)}%   Max DD: ${c.parsed.y.toFixed(1)}%`}}},
