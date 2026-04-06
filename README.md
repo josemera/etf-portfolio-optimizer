@@ -31,9 +31,14 @@ Monthly total return data (dividends reinvested) covers **Jan 2012–Dec 2025** 
 2. Allocate capital across ETFs using the dropdowns — each in $5K increments up to $100K.
 3. The **Total Allocated** badge turns green when allocations sum to exactly $100K.
 4. Click **↺ Reset to $10K** to reset all ETFs to $10K each ($100K total).
-5. Toggle between **Growth Chart** (cumulative value) and **Annual Returns** (year-by-year bar chart).
+5. Toggle between three chart views:
+   - **Growth Chart** — cumulative dollar value over time
+   - **Annual Returns** — year-by-year bar chart per ETF
+   - **% Gains** — all ETFs and the portfolio normalized to 0% at period start, showing percent gain over time
 6. Read the **Performance Summary** table for per-ETF and portfolio CAGR, max drawdown, and total gain.
 7. Hover any card to see the ETF's full name and descriptor.
+8. Review the **Year-by-Year Portfolio Values** table — toggle between **$ Value** (December month-end dollar amounts) and **% Gain** (cumulative percent gain from the selected start date).
+9. Review the **Year-by-Year Max Drawdown** table for intra-year peak-to-trough drawdown per ETF and the combined portfolio (color-coded: green ≤ 10%, red > 20%).
 
 > **Note on IVV vs VTI:** These two are nearly identical (0.99 correlation). You generally don't need both — VTI includes small/mid caps, IVV tracks the S&P 500 only.
 
@@ -64,10 +69,11 @@ Where **w** is the risk tolerance slider:
 
 **To use:**
 1. Set the risk slider to your preferred w value.
-2. Click **Run Optimizer**.
-3. The **Efficient Frontier** scatter plot appears — blue dots are sampled portfolios, yellow dots are the Pareto frontier (lowest drawdown at each CAGR level), the green star is the hill-climb optimum.
-4. Click any dot on the frontier to preview that allocation in the right panel.
-5. Click **Apply This Allocation ↑** to load the previewed allocation into the main backtest (rounded to nearest $5K).
+2. Optionally set a **Max DD filter** (e.g. `30`) to discard any sampled portfolio whose max drawdown exceeds that percentage. Only portfolios within the limit are shown on the frontier and used for hill-climbing. Leave blank for no filter.
+3. Click **Run Optimizer**.
+4. The **Efficient Frontier** scatter plot appears — blue dots are sampled portfolios, yellow dots are the Pareto frontier (lowest drawdown at each CAGR level), the green star is the hill-climb optimum.
+5. Click any dot on the frontier to preview that allocation in the right panel without redrawing the chart.
+6. Click **Apply This Allocation ↑** to load the previewed allocation into the main backtest (rounded to nearest $5K).
 
 **Important caveats:**
 - The optimizer uses only the **selected start month/year** from the main dropdowns. Results differ significantly between a Jan 2012 start (14 years including the 2022 bear market) and a Jan 2020 start (mostly bull market).

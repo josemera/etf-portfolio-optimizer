@@ -262,7 +262,13 @@
 
   <!-- Year-by-Year -->
   <div class="table-wrap">
-    <div class="table-title">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(December month-end)</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+      <div class="table-title" style="margin-bottom:0">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(December month-end)</span></div>
+      <div class="tabs" style="margin:0">
+        <button class="tab active" id="ybyTabValue" onclick="switchYbyTab('value',this)">$ Value</button>
+        <button class="tab" id="ybyTabGain" onclick="switchYbyTab('gain',this)">% Gain</button>
+      </div>
+    </div>
     <div class="scroll"><table>
       <thead id="ybyHead"></thead><tbody id="ybyBody"></tbody>
     </table></div>
@@ -584,6 +590,7 @@ TICKERS.forEach(t => {
 const RESET_ALLOC = Object.fromEntries(TICKERS.map(t => [t, 10000]));
 let allocations   = {...RESET_ALLOC};
 let currentTab    = "growth";
+let ybyMode       = "value";
 let mainChart     = null;
 let frontierChart = null;
 let frontierData  = null;
@@ -811,17 +818,31 @@ function update(){
   // Year-by-year table (December month-end values)
   document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${TICKERS.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Total</th></tr>`;
   const yb = document.getElementById("ybyBody"); yb.innerHTML = "";
+  const startVals = {}; TICKERS.forEach(t => { startVals[t] = allocations[t]||0; });
+  const startPortTotal = TICKERS.reduce((s,t) => s + (allocations[t]||0), 0);
   for(let year = startYear; year <= 2025; year++){
     const decCumIdx = (year - 2012 + 1) * 12; // CUM index at end of December
     const vals = {};
     TICKERS.forEach(t => { vals[t] = Math.round((allocations[t]||0) * CUM[t][decCumIdx] / CUM[t][startIdx]); });
     const portTotal = TICKERS.reduce((s,t) => s + vals[t], 0);
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td class="left mono muted">${year}</td>${TICKERS.map(t => {
-      if((allocations[t]||0) === 0) return `<td class="right mono muted">\u2014</td>`;
-      if(t === "JEPI" && year < 2020) return `<td class="right mono muted" title="JEPI not active">${fmtK(vals[t])} <span style="color:#f59e0b;font-size:9px">0%</span></td>`;
-      return `<td class="right mono">${fmtK(vals[t])}</td>`;
-    }).join("")}<td class="right mono" style="font-weight:700">${fmtK(portTotal)}</td>`;
+    if(ybyMode === "gain"){
+      const portGain = startPortTotal > 0 ? (portTotal / startPortTotal - 1) * 100 : 0;
+      const portCls = portGain >= 0 ? "green" : "red";
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${TICKERS.map(t => {
+        if((allocations[t]||0) === 0) return `<td class="right mono muted">\u2014</td>`;
+        if(t === "JEPI" && year < 2020) return `<td class="right mono muted">\u2014</td>`;
+        const gain = startVals[t] > 0 ? (vals[t] / startVals[t] - 1) * 100 : 0;
+        const cls = gain >= 0 ? "green" : "red";
+        return `<td class="right mono ${cls}">${gain >= 0 ? "+" : ""}${gain.toFixed(1)}%</td>`;
+      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portGain >= 0 ? "+" : ""}${portGain.toFixed(1)}%</td>`;
+    } else {
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${TICKERS.map(t => {
+        if((allocations[t]||0) === 0) return `<td class="right mono muted">\u2014</td>`;
+        if(t === "JEPI" && year < 2020) return `<td class="right mono muted" title="JEPI not active">${fmtK(vals[t])} <span style="color:#f59e0b;font-size:9px">0%</span></td>`;
+        return `<td class="right mono">${fmtK(vals[t])}</td>`;
+      }).join("")}<td class="right mono" style="font-weight:700">${fmtK(portTotal)}</td>`;
+    }
     yb.appendChild(tr);
   }
 
@@ -924,6 +945,12 @@ function renderMainChart(growthRows, annualRows){
 function switchTab(tab, btn){
   currentTab = tab;
   document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active"); update();
+}
+
+function switchYbyTab(mode, btn){
+  ybyMode = mode;
+  [document.getElementById("ybyTabValue"), document.getElementById("ybyTabGain")].forEach(b => b.classList.remove("active"));
   btn.classList.add("active"); update();
 }
 
