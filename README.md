@@ -69,8 +69,9 @@ Where **w** is the risk tolerance slider:
 
 **To use:**
 1. Set the risk slider to your preferred w value.
-2. Optionally set a **Max DD filter** (e.g. `30`) to discard any sampled portfolio whose max drawdown exceeds that percentage. Only portfolios within the limit are shown on the frontier and used for hill-climbing. Leave blank for no filter.
-3. Click **Run Optimizer**.
+2. Use the **Max Allocation / Ticker** slider (10%–No Limit) to cap how much of the $100K can be allocated to any single ETF. At 30%, no ETF can exceed $30K. At "No Limit" (100%), the optimizer can concentrate entirely in one ETF. This applies to both random sampling and hill-climbing.
+3. Optionally set a **Max DD filter** (e.g. `30`) to discard any sampled portfolio whose max drawdown exceeds that percentage. Only portfolios within the limit are shown on the frontier and used for hill-climbing. Leave blank for no filter.
+4. Click **Run Optimizer**.
 4. The **Efficient Frontier** scatter plot appears — blue dots are sampled portfolios, yellow dots are the Pareto frontier (lowest drawdown at each CAGR level), the green star is the hill-climb optimum.
 5. Click any dot on the frontier to preview that allocation in the right panel without redrawing the chart.
 6. Click **Apply This Allocation ↑** to load the previewed allocation into the main backtest (rounded to nearest $5K).
@@ -90,7 +91,8 @@ Runs the full optimizer independently on each **5-year window** across the compl
 
 **To use:**
 1. Set the **rolling window risk slider** (independent of the main optimizer slider).
-2. Click **Run Rolling Analysis** — takes approximately 10–15 seconds.
+2. Use the **Max Allocation / Ticker** slider to cap concentration per ETF across all windows (same behavior as the main optimizer slider, independent setting).
+3. Click **Run Rolling Analysis** — takes approximately 10–15 seconds.
 3. Three insight cards appear:
    - **Average Allocation** — which ETFs dominate across all windows by dollar weight
    - **Allocation Stability** — standard deviation of each ETF's allocation across windows (green = stable, red = regime-dependent)
