@@ -1,0 +1,11 @@
+# Default ETF universe for monthly return exports
+SCHD
+VTI
+QQQ
+IVV
+VPU
+IYF
+SMH
+VGT
+XLE
+JEPI

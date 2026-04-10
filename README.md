@@ -158,6 +158,44 @@ open index.html
 
 Chart rendering requires an internet connection to load Chart.js from the Cloudflare CDN (`cdnjs.cloudflare.com`). The optimizer and all calculations work offline; only the chart visualizations require the CDN.
 
+## Data Validation
+
+To re-verify the hard-coded `MONTHLY_RETURNS` dataset in `index.html` against Yahoo Finance monthly adjusted-close data:
+
+```bash
+python3 scripts/validate_monthly_returns.py
+```
+
+This recomputes each monthly return as `AdjClose[m] / AdjClose[m-1] - 1`, rounds to one decimal place, and diffs the result against the stored value.
+
+To validate the canonical CSV export instead:
+
+```bash
+python3 scripts/validate_monthly_returns.py --source-format csv
+```
+
+## Canonical Data Export
+
+To build or update a CSV that can later be ingested into Supabase:
+
+```bash
+python3 scripts/update_monthly_returns_csv.py
+```
+
+This writes [data/monthly_returns.csv](/Users/josemera/Sites/etf-portfolio-optimizer/data/monthly_returns.csv) in long format with:
+
+- `ticker`
+- `month`
+- `total_return_pct`
+- `source`
+- `fetched_at`
+
+Behavior:
+
+- Uses `data/tickers.txt` as the default ETF list, so the export universe is easy to extend.
+- Fetches only through the last completed calendar month by default; it never includes the current in-progress month.
+- Reuses the existing CSV as a checkpoint and only fetches missing trailing months unless `--refresh-all` is passed.
+
 ---
 
 *Past performance does not guarantee future results. This tool is for educational and exploratory purposes only and does not constitute financial advice.*
