@@ -30,23 +30,56 @@
   .reset-btn { padding: 7px 16px; background: #374151; color: #d1d5db; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
   .reset-btn:hover { background: #4b5563; }
 
-  /* Alloc grid — 5 cols × 2 rows */
-  .alloc-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-  .alloc-group label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
-  .alloc-group select { width: 100%; }
-  .alloc-group .limited-badge { display: none; font-size: 10px; color: #f59e0b; margin-top: 3px; }
-  .alloc-group.has-warning .limited-badge { display: block; }
-
   /* Cards */
   .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-  .card { background: #111827; border-radius: 10px; padding: 12px; border: 1px solid #1f2937; }
-  .card.portfolio { background: #1f2937; border-color: #374151; }
+  .card {
+    background: #111827;
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid #1f2937;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s, opacity 0.15s, box-shadow 0.15s;
+  }
+  .card.selected {
+    background: linear-gradient(180deg, rgba(17,24,39,1) 0%, rgba(13,31,24,1) 100%);
+    border-color: #4ade80;
+    box-shadow: inset 0 0 0 1px rgba(74,222,128,0.18);
+  }
+  .card.unselected {
+    opacity: 0.72;
+    border-color: #1f2937;
+  }
+  .card.locked { cursor: not-allowed; }
   .card-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
   .card-ticker { font-weight: 700; font-size: 13px; }
   .card-rank { color: #6b7280; font-size: 11px; }
   .card-value { font-weight: 700; font-size: 16px; }
   .card-value.green { color: #4ade80; }
   .card-meta { color: #9ca3af; font-size: 11px; margin-top: 2px; }
+  .card-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #9ca3af;
+  }
+  .card-state-pill {
+    border-radius: 999px;
+    padding: 2px 7px;
+    background: #1f2937;
+  }
+  .card.selected .card-state-pill {
+    background: rgba(74,222,128,0.12);
+    color: #4ade80;
+  }
+  .card.unselected .card-state-pill {
+    color: #6b7280;
+  }
 
   /* Tabs */
   .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -136,7 +169,6 @@
   .footnote { color: #374151; font-size: 11px; text-align: center; padding-bottom: 20px; }
 
   /* Card tooltip */
-  .card { position: relative; }
   .card-tooltip {
     display: none;
     position: absolute;
@@ -174,17 +206,17 @@
     z-index: 1;
   }
   .card:hover .card-tooltip { display: block; }
-  .card:hover { border-color: #374151; transform: translateY(-2px); transition: transform 0.15s, border-color 0.15s; }
+  .card:hover { border-color: #374151; transform: translateY(-2px); }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Portfolio Backtest</h1>
-  <p class="subtitle">Total return with dividends reinvested &middot; $100K total allocation &middot; Monthly data</p>
+  <p class="subtitle">Total return with dividends reinvested &middot; $100K starting portfolio &middot; Monthly data</p>
 
   <!-- Warning banner for JEPI -->
   <div class="jepi-warn" id="jepiWarn">
-    &#9888; <strong>JEPI launched May 2020.</strong> For start dates before June 2020, JEPI's allocation earns 0% return (treated as cash) for the pre-June-2020 months. Consider setting JEPI to $0 or using a June 2020+ start date for accurate JEPI analysis.
+    &#9888; <strong>JEPI launched May 2020.</strong> For start dates before June 2020, any active JEPI weight earns 0% return (treated as cash) for the pre-June-2020 months.
   </div>
 
   <!-- Controls -->
@@ -212,7 +244,7 @@
       </div>
       <div class="control-group">
         <label>&nbsp;</label>
-        <button class="reset-btn" onclick="resetAllocations()">&#8634; Reset to $10K</button>
+        <button class="reset-btn" onclick="resetAllocations()">&#8634; Reset to Equal Weights</button>
       </div>
       <div class="summary-stats">
         <div class="stat">
@@ -231,9 +263,12 @@
           <div class="stat-label">Max Drawdown</div>
           <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
         </div>
+        <div class="stat">
+          <div class="stat-label">Total Portfolio Gain</div>
+          <div class="stat-value green" id="statGain">&mdash;</div>
+        </div>
       </div>
     </div>
-    <div class="alloc-grid" id="allocGrid"></div>
   </div>
 
   <!-- Cards -->
@@ -252,7 +287,7 @@
     <div class="table-title" id="tableTitle">Performance Summary</div>
     <div class="scroll"><table>
       <thead><tr>
-        <th class="left">ETF</th><th class="right">Invested</th><th class="right">Final Value</th>
+        <th class="left">ETF</th><th class="right">Weight</th><th class="right">Final Value</th>
         <th class="right">Total Return</th><th class="right">CAGR</th>
         <th class="right">Max Drawdown</th><th class="right">Gain</th>
       </tr></thead>
@@ -287,7 +322,7 @@
   <!-- ══════════════════════ OPTIMIZER ══════════════════════ -->
   <div class="opt-panel">
     <div class="opt-title">&#9889; Portfolio Optimizer</div>
-    <div class="opt-desc">Finds the $100K allocation (in $1K steps) that maximizes CAGR / MaxDrawdown^w using 800 random samples + hill-climbing on monthly data. Uses the selected start date.</div>
+    <div class="opt-desc">Finds the percentage allocation (in 1% steps) that maximizes CAGR / MaxDrawdown^w across the selected ETF cards. Uses the selected start date.</div>
     <div class="slider-row">
       <span class="slider-label left-lbl">&uarr; Max Return</span>
       <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
@@ -329,7 +364,7 @@
   <!-- ══════════════════ ROLLING WINDOW ══════════════════ -->
   <div class="opt-panel">
     <div class="opt-title">&#128202; Rolling Window Optimizer</div>
-    <div class="opt-desc">Runs the optimizer on each 5-year (60-month) window across 2012&ndash;2025 (10 windows, annual stepping). Monthly drawdown granularity. Uses full dataset regardless of start date. JEPI excluded.</div>
+    <div class="opt-desc">Runs the optimizer on each 5-year (60-month) window across 2012&ndash;2025 (10 windows, annual stepping). Uses the currently selected ETF universe, excluding JEPI because it lacks enough 5-year history.</div>
     <div class="slider-row">
       <span class="slider-label left-lbl">&uarr; Max Return</span>
       <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
@@ -352,7 +387,7 @@
       <div class="insight-grid" id="rwInsights"></div>
       <div class="rw-grid">
         <div class="chart-wrap" style="margin-bottom:0">
-          <div style="color:#9ca3af;font-size:12px;font-weight:600;margin-bottom:10px;">Optimal Allocation by Window ($K)</div>
+          <div style="color:#9ca3af;font-size:12px;font-weight:600;margin-bottom:10px;">Optimal Allocation by Window (%)</div>
           <canvas id="rwAllocChart" height="260"></canvas>
         </div>
         <div class="chart-wrap" style="margin-bottom:0">
@@ -398,7 +433,6 @@ const NUM_MONTHS = 168; // Jan 2012 – Dec 2025
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const JEPI_FIRST_RETURN_IDX = 101; // June 2020 — first month with actual JEPI return
 const WINDOW_MONTHS = 60; // 5 years
-const RW_TICKERS = TICKERS.filter(t => t !== "JEPI");
 
 // ══════════════════════════════════════════════════
 // MONTHLY RETURN DATA (% total return, dividends reinvested)
@@ -587,8 +621,9 @@ TICKERS.forEach(t => {
 // ══════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════
-const RESET_ALLOC = Object.fromEntries(TICKERS.map(t => [t, 10000]));
-let allocations   = {...RESET_ALLOC};
+const TOTAL_PORTFOLIO = 100000;
+let selectedTickers = new Set(TICKERS);
+let weights       = buildEqualWeights(TICKERS);
 let currentTab    = "growth";
 let ybyMode       = "value";
 let mainChart     = null;
@@ -605,6 +640,7 @@ function fmtK(n){ if(!isFinite(n))return"\u2014"; if(Math.abs(n)>=1e6)return"$"+
 function fmtP(n,plus=false){ if(!isFinite(n))return"\u2014"; return(plus&&n>0?"+":"")+n.toFixed(1)+"%"; }
 function stdDev(arr){ const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0)/arr.length); }
 function tick(){ return new Promise(r=>setTimeout(r,0)); }
+function fmtW(n){ if(!isFinite(n))return"\u2014"; return n.toFixed(0) + "%"; }
 function safeReturn(ticker, monthIdx){
   const r = MONTHLY_RETURNS[ticker][monthIdx];
   return r === null || r === undefined ? 0 : r;
@@ -615,6 +651,32 @@ function monthLabel(idx){
 function getStartIdx(){
   return (+document.getElementById("startYear").value - 2012) * 12
        + (+document.getElementById("startMonth").value - 1);
+}
+function buildEqualWeights(tickers){
+  const alloc = Object.fromEntries(TICKERS.map(t => [t, 0]));
+  if(!tickers.length) return alloc;
+  const base = Math.floor(100 / tickers.length);
+  let rem = 100 - (base * tickers.length);
+  tickers.forEach((t, i) => {
+    alloc[t] = base + (i < rem ? 1 : 0);
+  });
+  return alloc;
+}
+function getSelectedTickers(){
+  return TICKERS.filter(t => selectedTickers.has(t));
+}
+function getRollingTickers(){
+  return getSelectedTickers().filter(t => t !== "JEPI");
+}
+function getPortfolioAllocations(weightMap = weights){
+  return Object.fromEntries(TICKERS.map(t => [t, (weightMap[t] || 0) * 1000]));
+}
+function clearOptimizerPreview(message="Run the optimizer to see results"){
+  frontierData = null;
+  previewAlloc = null;
+  if(frontierChart){ frontierChart.destroy(); frontierChart = null; }
+  const inner = document.getElementById("optResultInner");
+  if(inner) inner.innerHTML = `<div class="opt-empty">${message}</div>`;
 }
 
 // ══════════════════════════════════════════════════
@@ -678,6 +740,11 @@ function calcStats(alloc, startIdx){
 }
 
 function scoreFunc(cagr, dd, w){ return cagr / Math.pow(Math.max(dd, 0.01), w); }
+function portfolioFromWeights(weightMap, tickers=TICKERS){
+  const alloc = Object.fromEntries(TICKERS.map(t => [t, 0]));
+  tickers.forEach(t => { alloc[t] = (weightMap[t] || 0) * 1000; });
+  return alloc;
+}
 
 // Compound monthly returns into annual return for a given year
 function annualReturn(ticker, year){
@@ -687,46 +754,9 @@ function annualReturn(ticker, year){
   return (prod - 1) * 100;
 }
 
-// ══════════════════════════════════════════════════
-// ALLOC DROPDOWNS
-// ══════════════════════════════════════════════════
-function buildAllocGrid(){
-  const grid = document.getElementById("allocGrid"); grid.innerHTML = "";
-  TICKERS.forEach(t => {
-    const div = document.createElement("div"); div.className = "alloc-group"; div.id = "grp_" + t;
-    const isLimited = (t === "JEPI");
-    div.innerHTML = `<label style="color:${COLORS[t]}">${t}${isLimited ? ` <span style="color:#f59e0b;font-size:10px">2020+</span>` : ""}</label>`;
-    const sel = document.createElement("select"); sel.id = "sel_" + t;
-    sel.onchange = () => { allocations[t] = +sel.value; update(); };
-    for(let v = 0; v <= 100000; v += 5000){
-      const opt = document.createElement("option");
-      opt.value = v; opt.textContent = v === 0 ? "$0" : "$" + (v/1000) + "K";
-      if(v === (allocations[t]||0)) opt.selected = true;
-      sel.appendChild(opt);
-    }
-    if(isLimited){
-      const warn = document.createElement("div");
-      warn.className = "limited-badge"; warn.textContent = "\u26a0 Limited to 2020+";
-      div.appendChild(sel); div.appendChild(warn);
-    } else {
-      div.appendChild(sel);
-    }
-    grid.appendChild(div);
-  });
-  updateJepiWarning();
-}
-
-function setDropdowns(alloc){
-  TICKERS.forEach(t => {
-    const sel = document.getElementById("sel_" + t); if(!sel) return;
-    sel.value = Math.max(0, Math.min(100000, Math.round((alloc[t]||0) / 5000) * 5000));
-    allocations[t] = +sel.value;
-  });
-}
-
 function resetAllocations(){
-  allocations = {...RESET_ALLOC};
-  setDropdowns(allocations);
+  weights = buildEqualWeights(getSelectedTickers());
+  clearOptimizerPreview("Run the optimizer to see results");
   update();
 }
 
@@ -737,10 +767,8 @@ function onStartDateChange(){
 
 function updateJepiWarning(){
   const startIdx = getStartIdx();
-  const showWarn = (startIdx < JEPI_FIRST_RETURN_IDX && (allocations["JEPI"]||0) > 0);
+  const showWarn = (startIdx < JEPI_FIRST_RETURN_IDX && (weights["JEPI"]||0) > 0);
   document.getElementById("jepiWarn").style.display = showWarn ? "block" : "none";
-  const grp = document.getElementById("grp_JEPI");
-  if(grp) grp.classList.toggle("has-warning", startIdx < JEPI_FIRST_RETURN_IDX);
 }
 
 // ══════════════════════════════════════════════════
@@ -750,12 +778,17 @@ function update(){
   updateJepiWarning();
   const startIdx = getStartIdx();
   const numMonths = NUM_MONTHS - startIdx;
-  const total = TICKERS.reduce((s,t) => s + (allocations[t]||0), 0);
+  const activeTickers = getSelectedTickers();
+  const investedTickers = activeTickers.filter(t => (weights[t]||0) > 0);
+  const alloc = getPortfolioAllocations();
+  const total = activeTickers.reduce((s,t) => s + (alloc[t]||0), 0);
+  const totalWeight = activeTickers.reduce((s,t) => s + (weights[t]||0), 0);
   const badge = document.getElementById("totalBadge");
-  badge.textContent = fmtK(total); badge.className = "total-badge " + (total === 100000 ? "ok" : "bad");
+  badge.textContent = `${fmtK(total)} \u00b7 ${fmtW(totalWeight)}`;
+  badge.className = "total-badge " + (total === TOTAL_PORTFOLIO && totalWeight === 100 ? "ok" : "bad");
 
-  const growthRows = calcGrowthRows(allocations, startIdx);
-  const stats = calcStats(allocations, startIdx);
+  const growthRows = calcGrowthRows(alloc, startIdx);
+  const stats = calcStats(alloc, startIdx).filter(s => activeTickers.includes(s.t));
   const finalRow = growthRows[growthRows.length - 1];
   const portCagr = total > 0 ? (Math.pow(finalRow.Portfolio / total, 12 / numMonths) - 1) * 100 : 0;
   const portRet  = total > 0 ? (finalRow.Portfolio - total) / total * 100 : 0;
@@ -765,32 +798,37 @@ function update(){
   document.getElementById("statValue").textContent = fmtK(finalRow.Portfolio);
   document.getElementById("statCagr").textContent = fmtP(portCagr);
   document.getElementById("statDD").textContent = "-" + portMaxDD.toFixed(1) + "%";
+  const gainVal = finalRow.Portfolio - total;
+  document.getElementById("statGain").textContent = `${gainVal >= 0 ? "+" : "-"}${fmtK(Math.abs(gainVal))}`;
   const startMonth = (startIdx % 12) + 1;
   const startYear  = 2012 + Math.floor(startIdx / 12);
   document.getElementById("tableTitle").textContent = `Performance Summary (${MONTH_NAMES[startMonth - 1]} ${startYear}\u2013Dec 2025)`;
 
   // Cards
   const cardsEl = document.getElementById("cards"); cardsEl.innerHTML = "";
-  stats.forEach((s,i) => {
-    const c = document.createElement("div"); c.className = "card";
+  const statsByTicker = Object.fromEntries(stats.map(s => [s.t, s]));
+  TICKERS.forEach(t => {
+    const s = statsByTicker[t] || {t, end:0, cagr:0, totalRet:0, excluded:true};
+    const isSelected = selectedTickers.has(t);
+    const isLocked = isSelected && activeTickers.length <= 2;
+    const c = document.createElement("div");
+    c.className = `card ${isSelected ? "selected" : "unselected"}${isLocked ? " locked" : ""}`;
+    c.onclick = () => toggleTickerSelection(t);
     const tip = ETF_NAMES[s.t] || {name:s.t, sub:""};
     c.innerHTML = `
       <div class="card-tooltip">
         <div class="card-tooltip-name" style="color:${COLORS[s.t]}">${tip.name}</div>
         <div class="card-tooltip-sub">${tip.sub}</div>
       </div>
-      <div class="card-header"><span class="card-ticker" style="color:${COLORS[s.t]}">${s.t}</span><span class="card-rank">#${i+1}</span></div>
+      <div class="card-header"><span class="card-ticker" style="color:${COLORS[s.t]}">${s.t}</span><span class="card-rank">${isSelected ? fmtW(weights[t]||0) : "off"}</span></div>
       <div class="card-value">${s.excluded ? "\u2014" : fmtK(s.end)}</div>
-      <div class="card-meta">${s.excluded ? "$0 allocated" : fmtP(s.totalRet,true) + " \u00b7 " + s.cagr.toFixed(1) + "%/yr"}</div>`;
+      <div class="card-meta">${s.excluded ? "Not in active portfolio" : fmtP(s.totalRet,true) + " \u00b7 " + s.cagr.toFixed(1) + "%/yr"}</div>
+      <div class="card-state">
+        <span class="card-state-pill">${isSelected ? "Selected" : "Excluded"}</span>
+        <span>${isSelected ? `${fmtW(weights[t]||0)} current weight` : "Click to add"}</span>
+      </div>`;
     cardsEl.appendChild(c);
   });
-  const pc = document.createElement("div"); pc.className = "card portfolio";
-  pc.innerHTML = `
-    <div class="card-tooltip"><div class="card-tooltip-name">Combined Portfolio</div><div class="card-tooltip-sub">All allocated ETFs weighted by dollar amount</div></div>
-    <div class="card-header"><span class="card-ticker">Portfolio</span><span class="card-rank">combined</span></div>
-    <div class="card-value green">${fmtK(finalRow.Portfolio)}</div>
-    <div class="card-meta">${fmtP(portRet,true)} \u00b7 ${portCagr.toFixed(1)}%/yr</div>`;
-  cardsEl.appendChild(pc);
 
   // Summary table
   const tb = document.getElementById("summaryBody"); tb.innerHTML = "";
@@ -799,16 +837,16 @@ function update(){
     const jNote = (isJepi && startIdx < JEPI_FIRST_RETURN_IDX && !s.excluded) ? ' <span style="color:#f59e0b;font-size:10px">\u26a02020+</span>' : "";
     const tr = document.createElement("tr");
     tr.innerHTML = `<td class="left"><span style="color:${COLORS[s.t]};font-weight:700">${s.t}</span>${jNote} <span class="muted" style="font-size:11px">#${i+1}</span></td>
-      <td class="right muted">${fmtK(allocations[s.t]||0)}</td>
+      <td class="right muted">${fmtW(weights[s.t]||0)}</td>
       <td class="right" style="font-weight:700">${s.excluded ? "\u2014" : fmtK(s.end)}</td>
       <td class="right ${s.totalRet >= 0 ? "green" : "red"}">${s.excluded ? "\u2014" : fmtP(s.totalRet,true)}</td>
       <td class="right blue">${s.excluded ? "\u2014" : s.cagr.toFixed(1) + "%/yr"}</td>
       <td class="right red">${s.excluded ? "\u2014" : "-" + s.maxDD.toFixed(1) + "%"}</td>
-      <td class="right green">${s.excluded ? "\u2014" : "+" + fmtK(s.end - (allocations[s.t]||0))}</td>`;
+      <td class="right green">${s.excluded ? "\u2014" : "+" + fmtK(s.end - (alloc[s.t]||0))}</td>`;
     tb.appendChild(tr);
   });
   const ptr = document.createElement("tr"); ptr.className = "portfolio-row";
-  ptr.innerHTML = `<td class="left">Portfolio</td><td class="right muted">${fmtK(total)}</td>
+  ptr.innerHTML = `<td class="left">Portfolio</td><td class="right muted">${fmtW(totalWeight)}</td>
     <td class="right green" style="font-size:15px">${fmtK(finalRow.Portfolio)}</td>
     <td class="right green">${fmtP(portRet,true)}</td><td class="right blue">${portCagr.toFixed(1)}%/yr</td>
     <td class="right red">-${portMaxDD.toFixed(1)}%</td>
@@ -816,29 +854,27 @@ function update(){
   tb.appendChild(ptr);
 
   // Year-by-year table (December month-end values)
-  document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${TICKERS.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Total</th></tr>`;
+  document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Total</th></tr>`;
   const yb = document.getElementById("ybyBody"); yb.innerHTML = "";
-  const startVals = {}; TICKERS.forEach(t => { startVals[t] = allocations[t]||0; });
-  const startPortTotal = TICKERS.reduce((s,t) => s + (allocations[t]||0), 0);
+  const startVals = {}; investedTickers.forEach(t => { startVals[t] = alloc[t]||0; });
+  const startPortTotal = investedTickers.reduce((s,t) => s + (alloc[t]||0), 0);
   for(let year = startYear; year <= 2025; year++){
     const decCumIdx = (year - 2012 + 1) * 12; // CUM index at end of December
     const vals = {};
-    TICKERS.forEach(t => { vals[t] = Math.round((allocations[t]||0) * CUM[t][decCumIdx] / CUM[t][startIdx]); });
-    const portTotal = TICKERS.reduce((s,t) => s + vals[t], 0);
+    investedTickers.forEach(t => { vals[t] = Math.round((alloc[t]||0) * CUM[t][decCumIdx] / CUM[t][startIdx]); });
+    const portTotal = investedTickers.reduce((s,t) => s + vals[t], 0);
     const tr = document.createElement("tr");
     if(ybyMode === "gain"){
       const portGain = startPortTotal > 0 ? (portTotal / startPortTotal - 1) * 100 : 0;
       const portCls = portGain >= 0 ? "green" : "red";
-      tr.innerHTML = `<td class="left mono muted">${year}</td>${TICKERS.map(t => {
-        if((allocations[t]||0) === 0) return `<td class="right mono muted">\u2014</td>`;
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
         if(t === "JEPI" && year < 2020) return `<td class="right mono muted">\u2014</td>`;
         const gain = startVals[t] > 0 ? (vals[t] / startVals[t] - 1) * 100 : 0;
         const cls = gain >= 0 ? "green" : "red";
         return `<td class="right mono ${cls}">${gain >= 0 ? "+" : ""}${gain.toFixed(1)}%</td>`;
       }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portGain >= 0 ? "+" : ""}${portGain.toFixed(1)}%</td>`;
     } else {
-      tr.innerHTML = `<td class="left mono muted">${year}</td>${TICKERS.map(t => {
-        if((allocations[t]||0) === 0) return `<td class="right mono muted">\u2014</td>`;
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
         if(t === "JEPI" && year < 2020) return `<td class="right mono muted" title="JEPI not active">${fmtK(vals[t])} <span style="color:#f59e0b;font-size:9px">0%</span></td>`;
         return `<td class="right mono">${fmtK(vals[t])}</td>`;
       }).join("")}<td class="right mono" style="font-weight:700">${fmtK(portTotal)}</td>`;
@@ -847,14 +883,13 @@ function update(){
   }
 
   // Year-by-Year Max Drawdown table
-  document.getElementById("ybyDDHead").innerHTML = `<tr><th class="left">Year</th>${TICKERS.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Portfolio</th></tr>`;
+  document.getElementById("ybyDDHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Portfolio</th></tr>`;
   const ddb = document.getElementById("ybyDDBody"); ddb.innerHTML = "";
   for(let year = startYear; year <= 2025; year++){
     const janIdx = (year - 2012) * 12;
-    let portPeak = TICKERS.reduce((s,t) => s + (allocations[t]||0) * CUM[t][janIdx] / CUM[t][startIdx], 0), portMaxDD = 0;
+    let portPeak = investedTickers.reduce((s,t) => s + (alloc[t]||0) * CUM[t][janIdx] / CUM[t][startIdx], 0), portMaxDD = 0;
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td class="left mono muted">${year}</td>${TICKERS.map(t => {
-      if((allocations[t]||0) === 0) return `<td class="right mono muted">\u2014</td>`;
+    tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
       if(t === "JEPI" && year < 2020) return `<td class="right mono muted">\u2014</td>`;
       let peak = CUM[t][janIdx], maxDD = 0;
       for(let m = 1; m <= 12; m++){
@@ -868,7 +903,7 @@ function update(){
     }).join("")}`;
     for(let m = 1; m <= 12; m++){
       const idx = janIdx + m; if(idx > NUM_MONTHS) break;
-      const portVal = TICKERS.reduce((s,t) => s + (allocations[t]||0) * CUM[t][idx] / CUM[t][startIdx], 0);
+      const portVal = investedTickers.reduce((s,t) => s + (alloc[t]||0) * CUM[t][idx] / CUM[t][startIdx], 0);
       if(portVal > portPeak) portPeak = portVal;
       const dd = (portPeak - portVal) / portPeak * 100;
       if(dd > portMaxDD) portMaxDD = dd;
@@ -882,19 +917,19 @@ function update(){
   const annualRows = [];
   for(let y = startYear; y <= 2025; y++){
     const row = {year: y};
-    TICKERS.forEach(t => { row[t] = annualReturn(t, y); });
-    annualRows.push(row);
+    investedTickers.forEach(t => { row[t] = annualReturn(t, y); });
+  annualRows.push(row);
   }
-  renderMainChart(growthRows, annualRows);
+  updateOptimizerControls(activeTickers);
+  renderMainChart(growthRows, annualRows, investedTickers);
 }
 
 // ══════════════════════════════════════════════════
 // MAIN CHART
 // ══════════════════════════════════════════════════
-function renderMainChart(growthRows, annualRows){
+function renderMainChart(growthRows, annualRows, active){
   const ctx = document.getElementById("mainChart").getContext("2d");
   if(mainChart){mainChart.destroy(); mainChart = null;}
-  const active = TICKERS.filter(t => (allocations[t]||0) > 0);
   if(currentTab === "growth"){
     mainChart = new Chart(ctx, {type:"line",
       data:{labels: growthRows.map(r => r.label), datasets:[
@@ -942,6 +977,42 @@ function renderMainChart(growthRows, annualRows){
   }
 }
 
+function toggleTickerSelection(ticker){
+  const activeTickers = getSelectedTickers();
+  if(selectedTickers.has(ticker)){
+    if(activeTickers.length <= 2) return;
+    selectedTickers.delete(ticker);
+  } else {
+    selectedTickers.add(ticker);
+  }
+  weights = buildEqualWeights(getSelectedTickers());
+  clearOptimizerPreview("Selection changed. Run the optimizer to see results.");
+  update();
+}
+
+function updateOptimizerControls(activeTickers){
+  const runBtn = document.getElementById("runBtn");
+  const optStatus = document.getElementById("optStatus");
+  if(activeTickers.length < 2){
+    runBtn.disabled = true;
+    optStatus.textContent = "Select at least 2 ETF cards to run the optimizer.";
+  } else if(!frontierData){
+    runBtn.disabled = false;
+    optStatus.textContent = `Selected universe: ${activeTickers.join(", ")}.`;
+  }
+
+  const rollingTickers = getRollingTickers();
+  const rwRunBtn = document.getElementById("rwRunBtn");
+  const rwStatus = document.getElementById("rwStatus");
+  if(rollingTickers.length < 2){
+    rwRunBtn.disabled = true;
+    rwStatus.textContent = "Rolling analysis needs at least 2 selected non-JEPI ETFs.";
+  } else {
+    rwRunBtn.disabled = false;
+    rwStatus.textContent = `Rolling universe: ${rollingTickers.join(", ")}.`;
+  }
+}
+
 function switchTab(tab, btn){
   currentTab = tab;
   document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
@@ -959,11 +1030,9 @@ function switchYbyTab(mode, btn){
 // ══════════════════════════════════════════════════
 function randomPortfolio(tickers=TICKERS, maxUnits=100){
   const n = tickers.length;
-  // cap per ticker in units (1 unit = $1K, total = 100 units)
   const cap = Math.min(maxUnits, 100);
-  let alloc = Object.fromEntries(tickers.map(t => [t, 0]));
+  let alloc = Object.fromEntries(TICKERS.map(t => [t, 0]));
   let rem = 100;
-  // distribute randomly respecting the cap
   for(let i = 0; i < n - 1 && rem > 0; i++){
     const maxForThis = Math.min(rem, cap);
     alloc[tickers[i]] = Math.floor(Math.random() * (maxForThis + 1));
@@ -971,31 +1040,29 @@ function randomPortfolio(tickers=TICKERS, maxUnits=100){
   }
   alloc[tickers[n-1]] = Math.min(rem, cap);
   rem -= alloc[tickers[n-1]];
-  // redistribute any leftover (happens when cap is tight) round-robin
   if(rem > 0){
     for(let i = 0; i < n && rem > 0; i++){
       const space = cap - alloc[tickers[i]];
       if(space > 0){ const add = Math.min(space, rem); alloc[tickers[i]] += add; rem -= add; }
     }
   }
-  // shuffle order so no ticker is systematically favored
   const shuffled = [...tickers].sort(() => Math.random() - 0.5);
-  return Object.fromEntries(shuffled.map(t => [t, alloc[t] * 1000]));
+  return Object.fromEntries(TICKERS.map(t => [t, shuffled.includes(t) ? alloc[t] : 0]));
 }
 
 function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iterations=3000, maxUnits=100, maxDD=Infinity){
   const len = windowLen ?? (NUM_MONTHS - startIdx);
-  const cap = maxUnits * 1000; // convert to dollars
+  const cap = maxUnits;
   let cur = {...startAlloc};
-  let {cagr, dd} = calcPortfolio(cur, startIdx, len, tickers);
+  let {cagr, dd} = calcPortfolio(portfolioFromWeights(cur, tickers), startIdx, len, tickers);
   let best = scoreFunc(cagr, dd, w);
   for(let i = 0; i < iterations; i++){
     const a = Math.floor(Math.random() * tickers.length);
     let b = Math.floor(Math.random() * (tickers.length - 1)); if(b >= a) b++;
-    if((cur[tickers[a]]||0) < 1000) continue;
-    if(((cur[tickers[b]]||0) + 1000) > cap) continue; // enforce cap
-    const nxt = {...cur}; nxt[tickers[a]] -= 1000; nxt[tickers[b]] = (nxt[tickers[b]]||0) + 1000;
-    const {cagr:nc, dd:nd} = calcPortfolio(nxt, startIdx, len, tickers);
+    if((cur[tickers[a]]||0) < 1) continue;
+    if(((cur[tickers[b]]||0) + 1) > cap) continue;
+    const nxt = {...cur}; nxt[tickers[a]] -= 1; nxt[tickers[b]] = (nxt[tickers[b]]||0) + 1;
+    const {cagr:nc, dd:nd} = calcPortfolio(portfolioFromWeights(nxt, tickers), startIdx, len, tickers);
     if(nd > maxDD) continue; // enforce max drawdown constraint
     const ns = scoreFunc(nc, nd, w);
     if(ns > best){best = ns; cur = nxt; cagr = nc; dd = nd;}
@@ -1028,6 +1095,8 @@ function onRwMaxTickerChange(){
 }
 
 async function runOptimizer(){
+  const activeTickers = getSelectedTickers();
+  if(activeTickers.length < 2) return;
   const startIdx = getStartIdx();
   const w = +document.getElementById("riskSlider").value;
   const btn = document.getElementById("runBtn");
@@ -1043,8 +1112,8 @@ async function runOptimizer(){
 
   const SAMPLES = 800, points = [];
   for(let i = 0; i < SAMPLES; i++){
-    const alloc = randomPortfolio(TICKERS, maxUnits);
-    const {cagr, dd} = calcPortfolio(alloc, startIdx);
+    const alloc = randomPortfolio(activeTickers, maxUnits);
+    const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, activeTickers), startIdx, null, activeTickers);
     if(dd <= maxDDThreshold) points.push({cagr, dd, alloc});
     if(i % 160 === 0){fill.style.width = (i / SAMPLES * 55) + "%"; await tick();}
   }
@@ -1063,7 +1132,7 @@ async function runOptimizer(){
   let seedIdx = 0, bestSeed = -Infinity;
   points.forEach((p,i) => {const s = scoreFunc(p.cagr, p.dd, w); if(s > bestSeed){bestSeed = s; seedIdx = i;}});
 
-  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, null, TICKERS, 3000, maxUnits, maxDDThreshold);
+  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, null, activeTickers, 3000, maxUnits, maxDDThreshold);
   const filteredNote = maxDDThreshold < Infinity ? ` (DD \u2264 ${maxDDThreshold}%)` : "";
   fill.style.width = "100%";
   document.getElementById("optStatus").textContent = `Done \u2014 ${points.length} samples + hill-climb complete${filteredNote}.`;
@@ -1145,20 +1214,21 @@ function onFrontierClick(evt, ptAllocs, pareto){
 function renderOptResult(pt){
   const inner = document.getElementById("optResultInner");
   const w = +document.getElementById("riskSlider").value;
-  const maxAlloc = Math.max(...TICKERS.map(t => pt.alloc[t]||0), 1);
+  const activeTickers = getSelectedTickers();
+  const maxAlloc = Math.max(...activeTickers.map(t => pt.alloc[t]||0), 1);
   inner.innerHTML = `
     <div class="opt-metrics">
       <div class="opt-metric"><div class="opt-metric-label">CAGR</div><div class="opt-metric-val green">${fmtP(pt.cagr)}</div></div>
       <div class="opt-metric"><div class="opt-metric-label">Max Drawdown</div><div class="opt-metric-val red">-${fmtP(pt.dd)}</div></div>
       <div class="opt-metric"><div class="opt-metric-label">Score (CAGR/DD^w)</div><div class="opt-metric-val blue">${scoreFunc(pt.cagr, pt.dd, w).toFixed(2)}</div></div>
-      <div class="opt-metric"><div class="opt-metric-label">Total</div><div class="opt-metric-val">${fmtK(TICKERS.reduce((s,t) => s + (pt.alloc[t]||0), 0))}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Total</div><div class="opt-metric-val">${fmtW(activeTickers.reduce((s,t) => s + (pt.alloc[t]||0), 0))}</div></div>
     </div>
     <div style="margin-bottom:4px">
-      ${TICKERS.map(t => `
+      ${activeTickers.map(t => `
         <div class="opt-alloc-row">
           <span class="opt-ticker" style="color:${COLORS[t]}">${t}</span>
           <div class="opt-bar-wrap"><div class="opt-bar" style="width:${((pt.alloc[t]||0) / maxAlloc * 100).toFixed(1)}%;background:${COLORS[t]}"></div></div>
-          <span class="opt-val">${fmtK(pt.alloc[t]||0)}</span>
+          <span class="opt-val">${fmtW(pt.alloc[t]||0)}</span>
         </div>`).join("")}
     </div>
     <button class="apply-btn" onclick="applyOptimal()">Apply This Allocation \u2191</button>`;
@@ -1166,10 +1236,8 @@ function renderOptResult(pt){
 
 function applyOptimal(){
   if(!previewAlloc) return;
-  const rounded = Object.fromEntries(TICKERS.map(t => [t, Math.round((previewAlloc[t]||0) / 5000) * 5000]));
-  let diff = 100000 - TICKERS.reduce((s,t) => s + (rounded[t]||0), 0);
-  if(diff !== 0){ const biggest = TICKERS.slice().sort((a,b) => (rounded[b]||0) - (rounded[a]||0))[0]; rounded[biggest] += diff; }
-  allocations = rounded; setDropdowns(allocations); update();
+  weights = Object.fromEntries(TICKERS.map(t => [t, previewAlloc[t]||0]));
+  update();
   window.scrollTo({top:0, behavior:"smooth"});
 }
 
@@ -1177,6 +1245,8 @@ function applyOptimal(){
 // ROLLING WINDOW OPTIMIZER (60-month windows)
 // ══════════════════════════════════════════════════
 async function runRollingOptimizer(){
+  const rollingTickers = getRollingTickers();
+  if(rollingTickers.length < 2) return;
   const w    = +document.getElementById("rwRiskSlider").value;
   const btn  = document.getElementById("rwRunBtn");
   const fill = document.getElementById("rwProgressFill");
@@ -1202,15 +1272,13 @@ async function runRollingOptimizer(){
 
     let bestSeed = null, bestScore = -Infinity;
     for(let s = 0; s < SAMPLES_PER; s++){
-      const alloc = randomPortfolio(RW_TICKERS, maxUnits);
-      TICKERS.filter(t => !RW_TICKERS.includes(t)).forEach(t => alloc[t] = 0);
-      const {cagr, dd} = calcPortfolio(alloc, startIdx, WINDOW_MONTHS, RW_TICKERS);
+      const alloc = randomPortfolio(rollingTickers, maxUnits);
+      const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, rollingTickers), startIdx, WINDOW_MONTHS, rollingTickers);
       const sc = scoreFunc(cagr, dd, w);
       if(sc > bestScore){bestScore = sc; bestSeed = alloc;}
     }
 
-    const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(bestSeed, startIdx, w, WINDOW_MONTHS, RW_TICKERS, 5000, maxUnits);
-    TICKERS.filter(t => !RW_TICKERS.includes(t)).forEach(t => optAlloc[t] = 0);
+    const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(bestSeed, startIdx, w, WINDOW_MONTHS, rollingTickers, 5000, maxUnits);
     results.push({label, startIdx, alloc:optAlloc, cagr:optCagr, dd:optDD, score:scoreFunc(optCagr, optDD, w)});
   }
 
@@ -1228,34 +1296,35 @@ async function runRollingOptimizer(){
 
 function renderRwInsights(results){
   const container = document.getElementById("rwInsights");
-  const avgAlloc = Object.fromEntries(RW_TICKERS.map(t => [t, results.reduce((s,r) => s + (r.alloc[t]||0), 0) / results.length]));
+  const rollingTickers = getRollingTickers();
+  const avgAlloc = Object.fromEntries(rollingTickers.map(t => [t, results.reduce((s,r) => s + (r.alloc[t]||0), 0) / results.length]));
   const maxAvg = Math.max(...Object.values(avgAlloc), 1);
-  const stability = Object.fromEntries(RW_TICKERS.map(t => [t, stdDev(results.map(r => r.alloc[t]||0))]));
+  const stability = Object.fromEntries(rollingTickers.map(t => [t, stdDev(results.map(r => r.alloc[t]||0))]));
   const maxStd = Math.max(...Object.values(stability), 1);
-  const consistency = Object.fromEntries(RW_TICKERS.map(t => [t, results.filter(r => (r.alloc[t]||0) > 0).length]));
+  const consistency = Object.fromEntries(rollingTickers.map(t => [t, results.filter(r => (r.alloc[t]||0) > 0).length]));
 
   container.innerHTML = `
     <div class="insight-card">
       <div class="insight-title">Average Allocation</div>
-      ${RW_TICKERS.sort((a,b) => avgAlloc[b] - avgAlloc[a]).map(t => `
+      ${rollingTickers.slice().sort((a,b) => avgAlloc[b] - avgAlloc[a]).map(t => `
         <div class="insight-row">
           <span style="color:${COLORS[t]};font-weight:700;min-width:36px">${t}</span>
           <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(avgAlloc[t] / maxAvg * 100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
-          <span class="mono" style="min-width:42px;text-align:right">${fmtK(avgAlloc[t])}</span>
+          <span class="mono" style="min-width:42px;text-align:right">${fmtW(avgAlloc[t])}</span>
         </div>`).join("")}
     </div>
     <div class="insight-card">
       <div class="insight-title">Allocation Stability <span style="font-weight:400;color:#6b7280">(lower = stable)</span></div>
-      ${RW_TICKERS.sort((a,b) => stability[a] - stability[b]).map(t => `
+      ${rollingTickers.slice().sort((a,b) => stability[a] - stability[b]).map(t => `
         <div class="insight-row">
           <span style="color:${COLORS[t]};font-weight:700;min-width:36px">${t}</span>
           <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(stability[t] / maxStd * 100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
-          <span class="mono ${stability[t] < 10000 ? "green" : stability[t] < 20000 ? "amber" : "red"}" style="min-width:42px;text-align:right">\u00b1${fmtK(stability[t])}</span>
+          <span class="mono ${stability[t] < 10 ? "green" : stability[t] < 20 ? "amber" : "red"}" style="min-width:42px;text-align:right">\u00b1${fmtW(stability[t])}</span>
         </div>`).join("")}
     </div>
     <div class="insight-card">
-      <div class="insight-title">Consistency <span style="font-weight:400;color:#6b7280">(windows with &gt;$0)</span></div>
-      ${RW_TICKERS.sort((a,b) => consistency[b] - consistency[a]).map(t => `
+      <div class="insight-title">Consistency <span style="font-weight:400;color:#6b7280">(windows with &gt;0%)</span></div>
+      ${rollingTickers.slice().sort((a,b) => consistency[b] - consistency[a]).map(t => `
         <div class="insight-row">
           <span style="color:${COLORS[t]};font-weight:700;min-width:36px">${t}</span>
           <div class="stab-bar-wrap"><div class="stab-bar" style="width:${(consistency[t] / results.length * 100).toFixed(0)}%;background:${COLORS[t]}"></div></div>
@@ -1267,16 +1336,17 @@ function renderRwInsights(results){
 function renderRwAllocChart(results){
   const ctx = document.getElementById("rwAllocChart").getContext("2d");
   if(rwAllocChart){rwAllocChart.destroy(); rwAllocChart = null;}
+  const rollingTickers = getRollingTickers();
   rwAllocChart = new Chart(ctx, {type:"bar",
     data:{labels:results.map(r => r.label),
-      datasets:RW_TICKERS.map(t => ({label:t, data:results.map(r => (r.alloc[t]||0) / 1000), backgroundColor:COLORS[t]+"cc", borderColor:COLORS[t], borderWidth:1}))},
+      datasets:rollingTickers.map(t => ({label:t, data:results.map(r => (r.alloc[t]||0)), backgroundColor:COLORS[t]+"cc", borderColor:COLORS[t], borderWidth:1}))},
     options:{responsive:true,
       plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
         tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
-          callbacks:{label:c => ` ${c.dataset.label}: $${c.parsed.y}K`}}},
+          callbacks:{label:c => ` ${c.dataset.label}: ${c.parsed.y}%`}}},
       scales:{x:{stacked:true, ticks:{color:"#6b7280", font:{size:10}}, grid:{color:"#1f2937"}},
-              y:{stacked:true, ticks:{color:"#6b7280", font:{size:10}, callback:v => v+"K"}, grid:{color:"#1f2937"},
-                 title:{display:true, text:"Allocation ($K)", color:"#6b7280", font:{size:10}}}}}
+              y:{stacked:true, ticks:{color:"#6b7280", font:{size:10}, callback:v => v+"%"}, grid:{color:"#1f2937"},
+                 title:{display:true, text:"Allocation (%)", color:"#6b7280", font:{size:10}}}}}
   });
 }
 
@@ -1299,16 +1369,17 @@ function renderRwPerfChart(results){
 }
 
 function renderRwTable(results){
+  const rollingTickers = getRollingTickers();
   document.getElementById("rwTableHead").innerHTML = `<tr>
     <th class="left">Window</th>
-    ${RW_TICKERS.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}
+    ${rollingTickers.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}
     <th class="right green">CAGR</th><th class="right red">Max DD</th><th class="right blue">Score</th>
   </tr>`;
   const tbody = document.getElementById("rwTableBody"); tbody.innerHTML = "";
   results.forEach(r => {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td class="left mono" style="font-weight:600">${r.label}</td>
-      ${RW_TICKERS.map(t => `<td class="right mono ${(r.alloc[t]||0) === 0 ? "muted" : ""}">${(r.alloc[t]||0) === 0 ? "\u2014" : fmtK(r.alloc[t])}</td>`).join("")}
+      ${rollingTickers.map(t => `<td class="right mono ${(r.alloc[t]||0) === 0 ? "muted" : ""}">${(r.alloc[t]||0) === 0 ? "\u2014" : fmtW(r.alloc[t])}</td>`).join("")}
       <td class="right green">${fmtP(r.cagr)}</td>
       <td class="right red">-${fmtP(r.dd)}</td>
       <td class="right blue">${r.score.toFixed(2)}</td>`;
@@ -1316,10 +1387,10 @@ function renderRwTable(results){
   });
   const avgCagr = results.reduce((s,r) => s + r.cagr, 0) / results.length;
   const avgDD   = results.reduce((s,r) => s + r.dd, 0) / results.length;
-  const avgAlloc = Object.fromEntries(RW_TICKERS.map(t => [t, Math.round(results.reduce((s,r) => s + (r.alloc[t]||0), 0) / results.length)]));
+  const avgAlloc = Object.fromEntries(rollingTickers.map(t => [t, Math.round(results.reduce((s,r) => s + (r.alloc[t]||0), 0) / results.length)]));
   const tr = document.createElement("tr"); tr.className = "portfolio-row";
   tr.innerHTML = `<td class="left">Average</td>
-    ${RW_TICKERS.map(t => `<td class="right mono">${fmtK(avgAlloc[t])}</td>`).join("")}
+    ${rollingTickers.map(t => `<td class="right mono">${fmtW(avgAlloc[t])}</td>`).join("")}
     <td class="right green">${fmtP(avgCagr)}</td>
     <td class="right red">-${fmtP(avgDD)}</td>
     <td class="right muted">\u2014</td>`;
@@ -1329,7 +1400,11 @@ function renderRwTable(results){
 // ══════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════
-buildAllocGrid();
+onSliderChange();
+onMaxTickerChange();
+onRwSliderChange();
+onRwMaxTickerChange();
+clearOptimizerPreview();
 update();
 </script>
 </body>
