@@ -31,7 +31,7 @@
   .reset-btn:hover { background: #4b5563; }
 
   /* Cards */
-  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; isolation: isolate; }
   .card {
     background: #111827;
     border-radius: 10px;
@@ -85,6 +85,42 @@
   .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
   .tab { padding: 6px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; background: #111827; color: #9ca3af; transition: background 0.15s; }
   .tab.active { background: #2563eb; color: #fff; }
+  .toggle-groups { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .toggle-group {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:#0f172a;
+    border:1px solid #1f2937;
+    border-radius:10px;
+    padding:4px;
+  }
+  .toggle-group-label {
+    color:#6b7280;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    padding:0 6px;
+  }
+  .toggle-btn {
+    padding:6px 12px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    font-size:12px;
+    font-weight:700;
+    background:transparent;
+    color:#9ca3af;
+    transition:background 0.15s, color 0.15s;
+  }
+  .toggle-btn.active {
+    background:#2563eb;
+    color:#fff;
+  }
+  .toggle-btn.passive {
+    cursor:default;
+  }
 
   /* Chart / table wrappers */
   .chart-wrap { background: #111827; border-radius: 12px; padding: 16px; border: 1px solid #1f2937; margin-bottom: 20px; }
@@ -172,39 +208,21 @@
   .card-tooltip {
     display: none;
     position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1f2937;
-    border: 1px solid #374151;
+    left: 12px;
+    right: 12px;
+    top: 44px;
+    background: #0f172a;
+    border: 1px solid #4b5563;
     border-radius: 8px;
     padding: 8px 12px;
-    white-space: nowrap;
-    z-index: 100;
+    white-space: normal;
+    z-index: 5;
     pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    opacity: 1;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.75);
   }
   .card-tooltip-name { font-size: 13px; font-weight: 700; color: #f9fafb; }
   .card-tooltip-sub  { font-size: 11px; color: #6b7280; margin-top: 2px; }
-  .card-tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: #374151;
-  }
-  .card-tooltip::before {
-    content: "";
-    position: absolute;
-    top: calc(100% - 1px);
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: #1f2937;
-    z-index: 1;
-  }
   .card:hover .card-tooltip { display: block; }
   .card:hover { border-color: #374151; transform: translateY(-2px); }
 </style>
@@ -298,10 +316,18 @@
   <!-- Year-by-Year -->
   <div class="table-wrap">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-      <div class="table-title" style="margin-bottom:0">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(December month-end)</span></div>
-      <div class="tabs" style="margin:0">
-        <button class="tab active" id="ybyTabValue" onclick="switchYbyTab('value',this)">$ Value</button>
-        <button class="tab" id="ybyTabGain" onclick="switchYbyTab('gain',this)">% Gain</button>
+      <div class="table-title" id="ybyTitle" style="margin-bottom:0">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(December month-end)</span></div>
+      <div class="toggle-groups">
+        <div class="toggle-group">
+          <span class="toggle-group-label">Display</span>
+          <button class="toggle-btn active" id="ybyValueDollar" onclick="switchYbyValueMode('dollar',this)">$</button>
+          <button class="toggle-btn" id="ybyValuePercent" onclick="switchYbyValueMode('percent',this)">%</button>
+        </div>
+        <div class="toggle-group">
+          <span class="toggle-group-label">Measure</span>
+          <button class="toggle-btn active" id="ybyScopeCumulative" onclick="switchYbyScopeMode('cumulative',this)">Cumulative</button>
+          <button class="toggle-btn" id="ybyScopeYearly" onclick="switchYbyScopeMode('yearly',this)">Yearly</button>
+        </div>
       </div>
     </div>
     <div class="scroll"><table>
@@ -311,7 +337,19 @@
 
   <!-- Year-by-Year Drawdowns -->
   <div class="table-wrap">
-    <div class="table-title">Year-by-Year Max Drawdown <span style="color:#6b7280;font-weight:400;font-size:11px">(intra-year peak-to-trough)</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+      <div class="table-title" style="margin-bottom:0">Calendar-Year Max Drawdown <span style="color:#6b7280;font-weight:400;font-size:11px">(peak-to-trough within each displayed year; summary table shows full-period max drawdown)</span></div>
+      <div class="toggle-groups">
+        <div class="toggle-group">
+          <span class="toggle-group-label">Display</span>
+          <button class="toggle-btn active passive" type="button">%</button>
+        </div>
+        <div class="toggle-group">
+          <span class="toggle-group-label">Measure</span>
+          <button class="toggle-btn active passive" type="button">Yearly</button>
+        </div>
+      </div>
+    </div>
     <div class="scroll"><table>
       <thead id="ybyDDHead"></thead><tbody id="ybyDDBody"></tbody>
     </table></div>
@@ -411,6 +449,10 @@
 // ══════════════════════════════════════════════════
 // CONSTANTS
 // ══════════════════════════════════════════════════
+Chart.Tooltip.positioners.cursor = function(elements, eventPosition) {
+  return eventPosition;
+};
+
 const ETF_NAMES = {
   SCHD: { name: "Schwab US Dividend Equity ETF",    sub: "Dividend growth \u00b7 ~3.5% yield" },
   VTI:  { name: "Vanguard Total Stock Market ETF",  sub: "Broad US market \u00b7 ~1.3% yield" },
@@ -426,8 +468,8 @@ const ETF_NAMES = {
 const TICKERS = ["SCHD","VTI","QQQ","IVV","VPU","IYF","SMH","VGT","XLE","JEPI"];
 const COLORS  = {
   SCHD:"#22c55e", VTI:"#3b82f6",  QQQ:"#a855f7",  IVV:"#06b6d4",
-  VPU:"#f97316",  IYF:"#f59e0b",  SMH:"#ef4444",  VGT:"#8b5cf6",
-  XLE:"#d97706",  JEPI:"#ec4899"
+  VPU:"#14b8a6",  IYF:"#eab308",  SMH:"#ef4444",  VGT:"#8b5cf6",
+  XLE:"#f97316",  JEPI:"#ec4899"
 };
 const NUM_MONTHS = 168; // Jan 2012 – Dec 2025
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -625,7 +667,8 @@ const TOTAL_PORTFOLIO = 100000;
 let selectedTickers = new Set(TICKERS);
 let weights       = buildEqualWeights(TICKERS);
 let currentTab    = "growth";
-let ybyMode       = "value";
+let ybyValueMode  = "dollar";
+let ybyScopeMode  = "cumulative";
 let mainChart     = null;
 let frontierChart = null;
 let frontierData  = null;
@@ -677,6 +720,9 @@ function clearOptimizerPreview(message="Run the optimizer to see results"){
   if(frontierChart){ frontierChart.destroy(); frontierChart = null; }
   const inner = document.getElementById("optResultInner");
   if(inner) inner.innerHTML = `<div class="opt-empty">${message}</div>`;
+}
+function yearEndIdx(year){
+  return (year - 2012 + 1) * 12;
 }
 
 // ══════════════════════════════════════════════════
@@ -854,17 +900,22 @@ function update(){
   tb.appendChild(ptr);
 
   // Year-by-year table (December month-end values)
+  const ybyModeLabel = ybyScopeMode === "cumulative"
+    ? (ybyValueMode === "dollar" ? "December month-end, cumulative $" : "Cumulative % gain from selected start date")
+    : (ybyValueMode === "dollar" ? "Calendar-year $ change" : "Calendar-year % return");
+  document.getElementById("ybyTitle").innerHTML = `Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(${ybyModeLabel})</span>`;
   document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Total</th></tr>`;
   const yb = document.getElementById("ybyBody"); yb.innerHTML = "";
   const startVals = {}; investedTickers.forEach(t => { startVals[t] = alloc[t]||0; });
   const startPortTotal = investedTickers.reduce((s,t) => s + (alloc[t]||0), 0);
   for(let year = startYear; year <= 2025; year++){
-    const decCumIdx = (year - 2012 + 1) * 12; // CUM index at end of December
+    const decCumIdx = yearEndIdx(year);
+    const prevDecCumIdx = year === startYear ? startIdx : yearEndIdx(year - 1);
     const vals = {};
     investedTickers.forEach(t => { vals[t] = Math.round((alloc[t]||0) * CUM[t][decCumIdx] / CUM[t][startIdx]); });
     const portTotal = investedTickers.reduce((s,t) => s + vals[t], 0);
     const tr = document.createElement("tr");
-    if(ybyMode === "gain"){
+    if(ybyScopeMode === "cumulative" && ybyValueMode === "percent"){
       const portGain = startPortTotal > 0 ? (portTotal / startPortTotal - 1) * 100 : 0;
       const portCls = portGain >= 0 ? "green" : "red";
       tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
@@ -873,11 +924,41 @@ function update(){
         const cls = gain >= 0 ? "green" : "red";
         return `<td class="right mono ${cls}">${gain >= 0 ? "+" : ""}${gain.toFixed(1)}%</td>`;
       }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portGain >= 0 ? "+" : ""}${portGain.toFixed(1)}%</td>`;
-    } else {
+    } else if(ybyScopeMode === "cumulative" && ybyValueMode === "dollar"){
       tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
         if(t === "JEPI" && year < 2020) return `<td class="right mono muted" title="JEPI not active">${fmtK(vals[t])} <span style="color:#f59e0b;font-size:9px">0%</span></td>`;
         return `<td class="right mono">${fmtK(vals[t])}</td>`;
       }).join("")}<td class="right mono" style="font-weight:700">${fmtK(portTotal)}</td>`;
+    } else if(ybyScopeMode === "yearly" && ybyValueMode === "percent"){
+      const prevPortTotal = year === startYear
+        ? startPortTotal
+        : investedTickers.reduce((s,t) => s + Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]), 0);
+      const portGain = prevPortTotal > 0 ? (portTotal / prevPortTotal - 1) * 100 : 0;
+      const portCls = portGain >= 0 ? "green" : "red";
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
+        if(t === "JEPI" && year < 2020) return `<td class="right mono muted">\u2014</td>`;
+        const prevVal = year === startYear
+          ? (alloc[t]||0)
+          : Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]);
+        const gain = prevVal > 0 ? (vals[t] / prevVal - 1) * 100 : 0;
+        const cls = gain >= 0 ? "green" : "red";
+        return `<td class="right mono ${cls}">${gain >= 0 ? "+" : ""}${gain.toFixed(1)}%</td>`;
+      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portGain >= 0 ? "+" : ""}${portGain.toFixed(1)}%</td>`;
+    } else {
+      const prevPortTotal = year === startYear
+        ? startPortTotal
+        : investedTickers.reduce((s,t) => s + Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]), 0);
+      const portDelta = portTotal - prevPortTotal;
+      const portCls = portDelta >= 0 ? "green" : "red";
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
+        if(t === "JEPI" && year < 2020) return `<td class="right mono muted">\u2014</td>`;
+        const prevVal = year === startYear
+          ? (alloc[t]||0)
+          : Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]);
+        const delta = vals[t] - prevVal;
+        const cls = delta >= 0 ? "green" : "red";
+        return `<td class="right mono ${cls}">${delta >= 0 ? "+" : "-"}${fmtK(Math.abs(delta))}</td>`;
+      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portDelta >= 0 ? "+" : "-"}${fmtK(Math.abs(portDelta))}</td>`;
     }
     yb.appendChild(tr);
   }
@@ -938,8 +1019,22 @@ function renderMainChart(growthRows, annualRows, active){
       ]},
       options:{responsive:true, interaction:{mode:"index", intersect:false},
         plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
-          tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
-            callbacks:{label:c => ` ${c.dataset.label}: ${fmtK(c.parsed.y)}`}}},
+          tooltip:{
+            position:"cursor",
+            backgroundColor:"#111827",
+            borderColor:"#374151",
+            borderWidth:1,
+            titleColor:"#d1d5db",
+            bodyColor:"#fff",
+            callbacks:{
+              label:c => ` ${c.dataset.label}: ${fmtK(c.parsed.y)}`,
+              labelColor:c => ({
+                borderColor: c.dataset.borderColor,
+                backgroundColor: c.dataset.borderColor,
+                borderWidth: 1
+              })
+            }
+          }},
         scales:{
           x:{ticks:{color:"#6b7280", font:{size:10}, maxTicksLimit:15, maxRotation:45}, grid:{color:"#1f2937"}},
           y:{ticks:{color:"#6b7280", font:{size:11}, callback:fmtK}, grid:{color:"#1f2937"}}
@@ -955,8 +1050,22 @@ function renderMainChart(growthRows, annualRows, active){
       ]},
       options:{responsive:true, interaction:{mode:"index", intersect:false},
         plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
-          tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
-            callbacks:{label:c => ` ${c.dataset.label}: ${fmtP(c.parsed.y,true)}`}}},
+          tooltip:{
+            position:"cursor",
+            backgroundColor:"#111827",
+            borderColor:"#374151",
+            borderWidth:1,
+            titleColor:"#d1d5db",
+            bodyColor:"#fff",
+            callbacks:{
+              label:c => ` ${c.dataset.label}: ${fmtP(c.parsed.y,true)}`,
+              labelColor:c => ({
+                borderColor: c.dataset.borderColor,
+                backgroundColor: c.dataset.borderColor,
+                borderWidth: 1
+              })
+            }
+          }},
         scales:{
           x:{ticks:{color:"#6b7280", font:{size:10}, maxTicksLimit:15, maxRotation:45}, grid:{color:"#1f2937"}},
           y:{ticks:{color:"#6b7280", font:{size:11}, callback:v => v.toFixed(0)+"%"}, grid:{color:"#1f2937"}}
@@ -1019,10 +1128,18 @@ function switchTab(tab, btn){
   btn.classList.add("active"); update();
 }
 
-function switchYbyTab(mode, btn){
-  ybyMode = mode;
-  [document.getElementById("ybyTabValue"), document.getElementById("ybyTabGain")].forEach(b => b.classList.remove("active"));
-  btn.classList.add("active"); update();
+function switchYbyValueMode(mode, btn){
+  ybyValueMode = mode;
+  [document.getElementById("ybyValueDollar"), document.getElementById("ybyValuePercent")].forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  update();
+}
+
+function switchYbyScopeMode(mode, btn){
+  ybyScopeMode = mode;
+  [document.getElementById("ybyScopeCumulative"), document.getElementById("ybyScopeYearly")].forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  update();
 }
 
 // ══════════════════════════════════════════════════
