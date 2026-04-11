@@ -147,6 +147,18 @@
   .slider-label { font-size: 12px; color: #9ca3af; white-space: nowrap; }
   .slider-label.left-lbl { color: #4ade80; }
   .slider-label.right-lbl { color: #f87171; }
+  .optimizer-control {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    color:#9ca3af;
+    font-size:12px;
+  }
+  .optimizer-subnote {
+    color:#6b7280;
+    font-size:11px;
+    margin-top:8px;
+  }
   input[type=range] {
     -webkit-appearance: none; appearance: none; flex: 1; min-width: 180px; height: 6px;
     background: linear-gradient(to right, #16a34a, #2563eb, #dc2626);
@@ -355,7 +367,7 @@
   <!-- ══════════════════════ OPTIMIZER ══════════════════════ -->
   <div class="opt-panel">
     <div class="opt-title">&#9889; Portfolio Optimizer</div>
-    <div class="opt-desc">Finds the percentage allocation (in 1% steps) that maximizes CAGR / MaxDrawdown^w across the selected ETF cards. Uses the selected start date.</div>
+    <div class="opt-desc">Finds the percentage allocation (in 1% steps) that maximizes CAGR / MaxDrawdown^w across the selected ETF cards. Uses the selected start date and an optional optimization subwindow.</div>
     <div class="slider-row">
       <span class="slider-label left-lbl">&uarr; Max Return</span>
       <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
@@ -367,6 +379,46 @@
       <input type="range" id="maxTickerSlider" min="10" max="100" step="5" value="100" oninput="onMaxTickerChange()">
       <span class="slider-label right-lbl">No Limit</span>
       <span class="slider-val" id="maxTickerVal">No Limit</span>
+    </div>
+    <div class="slider-row">
+      <label class="optimizer-control">
+        <span>Optimizer Start</span>
+        <div class="start-date-row">
+          <select id="optStartMonth" onchange="onOptStartDateChange()">
+            <option value="1">Jan</option><option value="2">Feb</option>
+            <option value="3">Mar</option><option value="4">Apr</option>
+            <option value="5">May</option><option value="6">Jun</option>
+            <option value="7">Jul</option><option value="8">Aug</option>
+            <option value="9">Sep</option><option value="10">Oct</option>
+            <option value="11">Nov</option><option value="12">Dec</option>
+          </select>
+          <select id="optStartYear" onchange="onOptStartDateChange()">
+            <option value="2012">2012</option><option value="2013">2013</option>
+            <option value="2014">2014</option><option value="2015">2015</option>
+            <option value="2016">2016</option><option value="2017">2017</option>
+            <option value="2018">2018</option><option value="2019">2019</option>
+            <option value="2020">2020</option><option value="2021">2021</option>
+            <option value="2022">2022</option><option value="2023">2023</option>
+            <option value="2024">2024</option><option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </div>
+      </label>
+    </div>
+    <div class="slider-row">
+      <label class="optimizer-control" for="optWindow">
+        <span>Optimization Window</span>
+        <select id="optWindow" onchange="onOptWindowChange()">
+          <option value="full">Full Period</option>
+          <option value="12">12 months</option>
+          <option value="24">24 months</option>
+          <option value="36">36 months</option>
+          <option value="60">60 months</option>
+          <option value="84">84 months</option>
+          <option value="120">120 months</option>
+        </select>
+      </label>
+      <span class="optimizer-subnote" id="optWindowResolved">Optimizing on full period.</span>
     </div>
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
       <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
@@ -707,6 +759,10 @@ function getStartIdx(){
   return (+document.getElementById("startYear").value - DATA_START_YEAR) * 12
        + (+document.getElementById("startMonth").value - DATA_START_MONTH);
 }
+function getOptimizerStartIdx(){
+  return (+document.getElementById("optStartYear").value - DATA_START_YEAR) * 12
+       + (+document.getElementById("optStartMonth").value - DATA_START_MONTH);
+}
 function buildEqualWeights(tickers){
   const alloc = Object.fromEntries(TICKERS.map(t => [t, 0]));
   if(!tickers.length) return alloc;
@@ -729,12 +785,51 @@ function getPortfolioAllocations(weightMap = weights){
 function hasFeasibleCap(tickers, maxUnits){
   return tickers.length * maxUnits >= 100;
 }
+function getOptimizerWindowSelection(){
+  const value = document.getElementById("optWindow").value;
+  return value === "full" ? null : +value;
+}
+function getResolvedOptimizerWindow(startIdx = getOptimizerStartIdx()){
+  const available = NUM_MONTHS - startIdx;
+  const requested = getOptimizerWindowSelection();
+  const months = requested === null ? available : Math.min(requested, available);
+  return {requested, months, available};
+}
+function monthYearParts(idx){
+  const absoluteMonth = (DATA_START_MONTH - 1) + idx;
+  return {
+    year: DATA_START_YEAR + Math.floor(absoluteMonth / 12),
+    month: (absoluteMonth % 12) + 1,
+  };
+}
+function formatMonthYear(year, month){
+  return `${MONTH_NAMES[month - 1]} ${year}`;
+}
+function getOptimizerWindowLabel(startIdx){
+  const {requested, months, available} = getResolvedOptimizerWindow(startIdx);
+  const start = monthYearParts(startIdx);
+  const end = monthYearParts(startIdx + months - 1);
+  const rangeLabel = `${formatMonthYear(start.year, start.month)}-${formatMonthYear(end.year, end.month)}`;
+  if(requested === null || months === available){
+    return `Optimizing on ${rangeLabel} (${months} month${months === 1 ? "" : "s"}, full period).`;
+  }
+  return `Optimizing on ${rangeLabel} (${months} month${months === 1 ? "" : "s"}).`;
+}
+function refreshOptimizerWindowResolved(){
+  document.getElementById("optWindowResolved").textContent = getOptimizerWindowLabel(getOptimizerStartIdx());
+}
 function clearOptimizerPreview(message="Run the optimizer to see results"){
   frontierData = null;
   previewAlloc = null;
   if(frontierChart){ frontierChart.destroy(); frontierChart = null; }
   const inner = document.getElementById("optResultInner");
   if(inner) inner.innerHTML = `<div class="opt-empty">${message}</div>`;
+}
+function preserveScrollDuring(action){
+  const x = window.scrollX;
+  const y = window.scrollY;
+  action();
+  window.scrollTo(x, y);
 }
 function yearEndIdx(year){
   return (year - DATA_START_YEAR + 1) * 12;
@@ -755,6 +850,41 @@ function syncStartDateControls(){
   if(selectedYear === DATA_END_YEAR && +monthSelect.value > DATA_END_MONTH){
     monthSelect.value = String(DATA_END_MONTH);
   }
+}
+function syncOptimizerDateControls(){
+  const mainStartIdx = getStartIdx();
+  const mainStart = monthYearParts(mainStartIdx);
+  const yearSelect = document.getElementById("optStartYear");
+  const monthSelect = document.getElementById("optStartMonth");
+  const selectedYear = +yearSelect.value;
+
+  [...yearSelect.options].forEach(option => {
+    const year = +option.value;
+    option.disabled = year < mainStart.year || year > DATA_END_YEAR;
+  });
+
+  if(+yearSelect.value < mainStart.year){
+    yearSelect.value = String(mainStart.year);
+  }
+  if(+yearSelect.value > DATA_END_YEAR){
+    yearSelect.value = String(DATA_END_YEAR);
+  }
+
+  const effectiveYear = +yearSelect.value;
+  [...monthSelect.options].forEach(option => {
+    const month = +option.value;
+    const beforeMainStart = effectiveYear === mainStart.year && month < mainStart.month;
+    const afterDataEnd = effectiveYear === DATA_END_YEAR && month > DATA_END_MONTH;
+    option.disabled = beforeMainStart || afterDataEnd;
+  });
+
+  if(effectiveYear === mainStart.year && +monthSelect.value < mainStart.month){
+    monthSelect.value = String(mainStart.month);
+  }
+  if(effectiveYear === DATA_END_YEAR && +monthSelect.value > DATA_END_MONTH){
+    monthSelect.value = String(DATA_END_MONTH);
+  }
+  refreshOptimizerWindowResolved();
 }
 
 // ══════════════════════════════════════════════════
@@ -840,7 +970,17 @@ function resetAllocations(){
 
 function onStartDateChange(){
   syncStartDateControls();
+  syncOptimizerDateControls();
+  clearOptimizerPreview("Start date changed. Run the optimizer to see results.");
   update();
+}
+
+function onOptStartDateChange(){
+  preserveScrollDuring(() => {
+    syncOptimizerDateControls();
+    clearOptimizerPreview("Optimizer start date changed. Run the optimizer to see results.");
+    update();
+  });
 }
 
 // ══════════════════════════════════════════════════
@@ -848,6 +988,7 @@ function onStartDateChange(){
 // ══════════════════════════════════════════════════
 function update(){
   syncStartDateControls();
+  syncOptimizerDateControls();
   const startIdx = getStartIdx();
   const numMonths = NUM_MONTHS - startIdx;
   const activeTickers = getSelectedTickers();
@@ -1129,7 +1270,7 @@ function updateOptimizerControls(activeTickers){
     optStatus.textContent = `Max ${maxUnits}% / ticker needs at least ${Math.ceil(100 / maxUnits)} selected ETFs.`;
   } else if(!frontierData){
     runBtn.disabled = false;
-    optStatus.textContent = `Selected universe: ${activeTickers.join(", ")}.`;
+    optStatus.textContent = `Selected universe: ${activeTickers.join(", ")}. ${getOptimizerWindowLabel(getOptimizerStartIdx())}`;
   }
 
   const rollingTickers = getRollingTickers();
@@ -1225,8 +1366,18 @@ function onSliderChange(){
 function onMaxTickerChange(){
   const v = +document.getElementById("maxTickerSlider").value;
   document.getElementById("maxTickerVal").textContent = v >= 100 ? "No Limit" : `Max ${v}% / ticker`;
-  clearOptimizerPreview("Max allocation changed. Run the optimizer to see results.");
-  updateOptimizerControls(getSelectedTickers());
+  preserveScrollDuring(() => {
+    clearOptimizerPreview("Max allocation changed. Run the optimizer to see results.");
+    updateOptimizerControls(getSelectedTickers());
+  });
+}
+
+function onOptWindowChange(){
+  preserveScrollDuring(() => {
+    refreshOptimizerWindowResolved();
+    clearOptimizerPreview("Optimization window changed. Run the optimizer to see results.");
+    updateOptimizerControls(getSelectedTickers());
+  });
 }
 
 function onRwSliderChange(){
@@ -1243,7 +1394,8 @@ function onRwMaxTickerChange(){
 async function runOptimizer(){
   const activeTickers = getSelectedTickers();
   if(activeTickers.length < 2) return;
-  const startIdx = getStartIdx();
+  const startIdx = getOptimizerStartIdx();
+  const {months:windowLen} = getResolvedOptimizerWindow(startIdx);
   const w = +document.getElementById("riskSlider").value;
   const btn = document.getElementById("runBtn");
   const fill = document.getElementById("progressFill");
@@ -1265,7 +1417,7 @@ async function runOptimizer(){
   const SAMPLES = 800, points = [];
   for(let i = 0; i < SAMPLES; i++){
     const alloc = randomPortfolio(activeTickers, maxUnits);
-    const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, activeTickers), startIdx, null, activeTickers);
+    const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, activeTickers), startIdx, windowLen, activeTickers);
     if(dd <= maxDDThreshold) points.push({cagr, dd, alloc});
     if(i % 160 === 0){fill.style.width = (i / SAMPLES * 55) + "%"; await tick();}
   }
@@ -1284,14 +1436,19 @@ async function runOptimizer(){
   let seedIdx = 0, bestSeed = -Infinity;
   points.forEach((p,i) => {const s = scoreFunc(p.cagr, p.dd, w); if(s > bestSeed){bestSeed = s; seedIdx = i;}});
 
-  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, null, activeTickers, 3000, maxUnits, maxDDThreshold);
+  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, windowLen, activeTickers, 3000, maxUnits, maxDDThreshold);
   const filteredNote = maxDDThreshold < Infinity ? ` (DD \u2264 ${maxDDThreshold}%)` : "";
   fill.style.width = "100%";
   document.getElementById("optStatus").textContent = `Done \u2014 ${points.length} samples + hill-climb complete${filteredNote}.`;
   btn.disabled = false;
   setTimeout(() => {document.getElementById("progressBar").style.display = "none"; fill.style.width = "0%";}, 700);
 
-  frontierData = {points, optPoint:{cagr:optCagr, dd:optDD, alloc:optAlloc}};
+  frontierData = {
+    points,
+    windowLen,
+    windowLabel: getOptimizerWindowLabel(startIdx),
+    optPoint:{cagr:optCagr, dd:optDD, alloc:optAlloc}
+  };
   previewAlloc = optAlloc;
   if(frontierChart){frontierChart.destroy(); frontierChart = null;}
   renderFrontier(w, frontierData.optPoint);
@@ -1369,6 +1526,7 @@ function renderOptResult(pt){
   const activeTickers = getSelectedTickers();
   const maxAlloc = Math.max(...activeTickers.map(t => pt.alloc[t]||0), 1);
   inner.innerHTML = `
+    <div style="color:#6b7280;font-size:11px;margin-bottom:12px">${frontierData ? frontierData.windowLabel : getOptimizerWindowLabel(getStartIdx())}</div>
     <div class="opt-metrics">
       <div class="opt-metric"><div class="opt-metric-label">CAGR</div><div class="opt-metric-val green">${fmtP(pt.cagr)}</div></div>
       <div class="opt-metric"><div class="opt-metric-label">Max Drawdown</div><div class="opt-metric-val red">-${fmtP(pt.dd)}</div></div>

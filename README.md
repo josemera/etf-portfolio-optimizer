@@ -29,7 +29,7 @@ The Jan 2012 start is intentional. Some ETFs have earlier Yahoo Finance history,
 
 ### 1. Build the ETF Universe
 
-1. Set the **Start Month/Year** (Jan 2012-Mar 2026).
+1. Set the **Start Month/Year** for the backtest period (Jan 2012-Mar 2026).
 2. Click ETF cards to **select or deselect** the universe you want the backtest and optimizer to use.
 3. At least **2 ETFs must remain selected**. Deselecting below that is blocked.
 4. Any selection change resets the portfolio to **equal weights** across the selected ETFs.
@@ -72,6 +72,17 @@ Hover any ETF card to see the full ETF name and descriptor.
 
 The optimizer works only on the **currently selected ETF cards** and solves for percentage weights in **1% steps**.
 
+The optimizer now has its own in-sample training controls:
+
+- **Optimizer Start** — independent from the main backtest start date, but it cannot be earlier than the main start date
+- **Optimization Window** — `Full Period` or a fixed number of months from the optimizer start date
+
+The UI shows the resolved optimization range explicitly, for example:
+
+```text
+Optimizing on Jan 2018-Dec 2020 (36 months)
+```
+
 Objective:
 
 ```text
@@ -95,18 +106,23 @@ How it works:
 To use it:
 
 1. Select the ETF cards you want included.
-2. Set the risk slider.
-3. Use **Max Allocation / Ticker** to cap concentration (10%-100%).
-4. Optionally set a **Max DD filter** to discard samples above a drawdown threshold.
-5. Click **Run Optimizer**.
-6. Click any frontier point to preview it.
-7. Click **Apply This Allocation ↑** to make that previewed optimized allocation the active backtest portfolio.
+2. Set the **Optimizer Start** date if you want the training period to begin later than the main backtest start.
+3. Choose an **Optimization Window** (`Full Period`, `12`, `24`, `36`, `60`, `84`, or `120` months).
+4. Set the risk slider.
+5. Use **Max Allocation / Ticker** to cap concentration (10%-100%).
+6. Optionally set a **Max DD filter** to discard samples above a drawdown threshold.
+7. Click **Run Optimizer**.
+8. Click any frontier point to preview it.
+9. Click **Apply This Allocation ↑** to make that previewed optimized allocation the active backtest portfolio.
 
 Important behavior:
 
 - Selected ETFs are **eligible** for the run, but the optimizer may still assign them **0%**.
 - Deselected ETFs are treated as if they do not exist; the optimizer does not see them.
-- The optimizer uses only the **selected start month/year** from the main controls.
+- The optimizer trains on its own resolved range, not necessarily the full backtest period.
+- The **applied allocation is still evaluated over the full backtest period** from the main `Start Month/Year`.
+- Changing the main start date, optimizer start date, optimization window, or max-allocation cap clears stale optimizer results and requires a rerun.
+- If the requested optimization window is longer than the available history from the optimizer start date, it is automatically clamped to the available period.
 
 ### 5. Run the Rolling Window Optimizer
 
@@ -147,6 +163,14 @@ Max drawdown is calculated across **monthly snapshots**, not daily data. Intra-m
 ### Weight Model
 
 The app uses **integer percentage weights** summing to 100%, while keeping a **$100K notional starting portfolio** so backtest outputs remain intuitive in dollars.
+
+### In-Sample vs Out-of-Sample
+
+The main backtest period and the optimizer training period are intentionally separate.
+
+- The main `Start Month/Year` defines the portfolio evaluation period shown in charts and tables
+- `Optimizer Start` plus `Optimization Window` define the in-sample range used for optimization scoring
+- This makes it possible to optimize on a later subset of history and then inspect how the resulting allocation behaves on the broader backtest window
 
 ### Overfitting Risk
 
