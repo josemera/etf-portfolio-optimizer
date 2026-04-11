@@ -110,19 +110,22 @@ To use it:
 3. Choose an **Optimization Window** (`Full Period`, `12`, `24`, `36`, `60`, `84`, or `120` months).
 4. Set the risk slider.
 5. Use **Max Allocation / Ticker** to cap concentration (10%-100%).
-6. Optionally set a **Max DD filter** to discard samples above a drawdown threshold.
-7. Click **Run Optimizer**.
-8. Click any frontier point to preview it.
-9. Click **Apply This Allocation ↑** to make that previewed optimized allocation the active backtest portfolio.
+6. Use **Min Allocation / Selected Ticker** (`0%`-`20%` in `5%` steps) if you want every selected ETF to keep at least a minimum weight.
+7. Optionally set a **Max DD filter** to discard samples above a drawdown threshold.
+8. Click **Run Optimizer**.
+9. Click any frontier point to preview it.
+10. Click **Apply This Allocation ↑** to make that previewed optimized allocation the active backtest portfolio.
 
 Important behavior:
 
-- Selected ETFs are **eligible** for the run, but the optimizer may still assign them **0%**.
+- With **Min Allocation / Selected Ticker = 0%**, selected ETFs are eligible for the run and may still be assigned `0%`.
+- With **Min Allocation / Selected Ticker > 0%**, every selected ETF becomes a required holding for that run and must receive at least that minimum weight.
 - Deselected ETFs are treated as if they do not exist; the optimizer does not see them.
 - The optimizer trains on its own resolved range, not necessarily the full backtest period.
 - The **applied allocation is still evaluated over the full backtest period** from the main `Start Month/Year`.
-- Changing the main start date, optimizer start date, optimization window, or max-allocation cap clears stale optimizer results and requires a rerun.
+- Changing the main start date, optimizer start date, optimization window, max-allocation cap, or min-allocation floor clears stale optimizer results and requires a rerun.
 - If the requested optimization window is longer than the available history from the optimizer start date, it is automatically clamped to the available period.
+- The optimizer enforces feasibility for the selected universe. For example, if the chosen minimum and maximum cannot sum to `100%` across the selected ETFs, the run is disabled until the settings are feasible.
 
 ### 5. Run the Rolling Window Optimizer
 
@@ -163,6 +166,15 @@ Max drawdown is calculated across **monthly snapshots**, not daily data. Intra-m
 ### Weight Model
 
 The app uses **integer percentage weights** summing to 100%, while keeping a **$100K notional starting portfolio** so backtest outputs remain intuitive in dollars.
+
+### Allocation Constraints
+
+The main optimizer supports both:
+
+- **Max Allocation / Ticker** — caps concentration
+- **Min Allocation / Selected Ticker** — prevents selected ETFs from being ignored when set above `0%`
+
+The minimum-allocation control applies only to the **main optimizer**. The rolling optimizer still uses only the maximum-allocation cap.
 
 ### In-Sample vs Out-of-Sample
 

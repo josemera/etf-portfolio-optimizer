@@ -381,6 +381,12 @@
       <span class="slider-val" id="maxTickerVal">No Limit</span>
     </div>
     <div class="slider-row">
+      <span class="slider-label left-lbl">&#9878; Allow Zeroes</span>
+      <input type="range" id="minTickerSlider" min="0" max="20" step="5" value="0" oninput="onMinTickerChange()">
+      <span class="slider-label right-lbl">Force Inclusion</span>
+      <span class="slider-val" id="minTickerVal">Min 0%</span>
+    </div>
+    <div class="slider-row">
       <label class="optimizer-control">
         <span>Optimizer Start</span>
         <div class="start-date-row">
@@ -784,6 +790,11 @@ function getPortfolioAllocations(weightMap = weights){
 }
 function hasFeasibleCap(tickers, maxUnits){
   return tickers.length * maxUnits >= 100;
+}
+function hasFeasibleMinMax(tickers, minUnits, maxUnits){
+  return minUnits <= maxUnits
+      && tickers.length * minUnits <= 100
+      && tickers.length * maxUnits >= 100;
 }
 function getOptimizerWindowSelection(){
   const value = document.getElementById("optWindow").value;
@@ -1262,9 +1273,13 @@ function updateOptimizerControls(activeTickers){
   const runBtn = document.getElementById("runBtn");
   const optStatus = document.getElementById("optStatus");
   const maxUnits = +document.getElementById("maxTickerSlider").value;
+  const minUnits = +document.getElementById("minTickerSlider").value;
   if(activeTickers.length < 2){
     runBtn.disabled = true;
     optStatus.textContent = "Select at least 2 ETF cards to run the optimizer.";
+  } else if(!hasFeasibleMinMax(activeTickers, minUnits, maxUnits)){
+    runBtn.disabled = true;
+    optStatus.textContent = `Min ${minUnits}% / Max ${maxUnits}% is infeasible for ${activeTickers.length} selected ETFs.`;
   } else if(!hasFeasibleCap(activeTickers, maxUnits)){
     runBtn.disabled = true;
     optStatus.textContent = `Max ${maxUnits}% / ticker needs at least ${Math.ceil(100 / maxUnits)} selected ETFs.`;
@@ -1312,18 +1327,23 @@ function switchYbyScopeMode(mode, btn){
 // ══════════════════════════════════════════════════
 // OPTIMIZER SHARED UTILITIES
 // ══════════════════════════════════════════════════
-function randomPortfolio(tickers=TICKERS, maxUnits=100){
+function randomPortfolio(tickers=TICKERS, maxUnits=100, minUnits=0){
   const n = tickers.length;
   const cap = Math.min(maxUnits, 100);
+  const floor = Math.max(0, minUnits);
   let alloc = Object.fromEntries(TICKERS.map(t => [t, 0]));
-  let rem = 100;
+  let rem = 100 - (n * floor);
+  tickers.forEach(t => { alloc[t] = floor; });
+  if(rem < 0) return alloc;
   for(let i = 0; i < n - 1 && rem > 0; i++){
-    const maxForThis = Math.min(rem, cap);
-    alloc[tickers[i]] = Math.floor(Math.random() * (maxForThis + 1));
-    rem -= alloc[tickers[i]];
+    const maxForThis = Math.min(rem, cap - floor);
+    const add = Math.floor(Math.random() * (maxForThis + 1));
+    alloc[tickers[i]] += add;
+    rem -= add;
   }
-  alloc[tickers[n-1]] = Math.min(rem, cap);
-  rem -= alloc[tickers[n-1]];
+  const lastAdd = Math.min(rem, cap - floor);
+  alloc[tickers[n-1]] += lastAdd;
+  rem -= lastAdd;
   if(rem > 0){
     for(let i = 0; i < n && rem > 0; i++){
       const space = cap - alloc[tickers[i]];
@@ -1334,16 +1354,17 @@ function randomPortfolio(tickers=TICKERS, maxUnits=100){
   return Object.fromEntries(TICKERS.map(t => [t, shuffled.includes(t) ? alloc[t] : 0]));
 }
 
-function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iterations=3000, maxUnits=100, maxDD=Infinity){
+function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iterations=3000, maxUnits=100, maxDD=Infinity, minUnits=0){
   const len = windowLen ?? (NUM_MONTHS - startIdx);
   const cap = maxUnits;
+  const floor = minUnits;
   let cur = {...startAlloc};
   let {cagr, dd} = calcPortfolio(portfolioFromWeights(cur, tickers), startIdx, len, tickers);
   let best = scoreFunc(cagr, dd, w);
   for(let i = 0; i < iterations; i++){
     const a = Math.floor(Math.random() * tickers.length);
     let b = Math.floor(Math.random() * (tickers.length - 1)); if(b >= a) b++;
-    if((cur[tickers[a]]||0) < 1) continue;
+    if((cur[tickers[a]]||0) <= floor) continue;
     if(((cur[tickers[b]]||0) + 1) > cap) continue;
     const nxt = {...cur}; nxt[tickers[a]] -= 1; nxt[tickers[b]] = (nxt[tickers[b]]||0) + 1;
     const {cagr:nc, dd:nd} = calcPortfolio(portfolioFromWeights(nxt, tickers), startIdx, len, tickers);
@@ -1368,6 +1389,15 @@ function onMaxTickerChange(){
   document.getElementById("maxTickerVal").textContent = v >= 100 ? "No Limit" : `Max ${v}% / ticker`;
   preserveScrollDuring(() => {
     clearOptimizerPreview("Max allocation changed. Run the optimizer to see results.");
+    updateOptimizerControls(getSelectedTickers());
+  });
+}
+
+function onMinTickerChange(){
+  const v = +document.getElementById("minTickerSlider").value;
+  document.getElementById("minTickerVal").textContent = `Min ${v}%`;
+  preserveScrollDuring(() => {
+    clearOptimizerPreview("Min allocation changed. Run the optimizer to see results.");
     updateOptimizerControls(getSelectedTickers());
   });
 }
@@ -1407,6 +1437,13 @@ async function runOptimizer(){
   const maxDDInput = parseFloat(document.getElementById("maxDDFilter").value);
   const maxDDThreshold = isNaN(maxDDInput) ? Infinity : maxDDInput;
   const maxUnits = +document.getElementById("maxTickerSlider").value;
+  const minUnits = +document.getElementById("minTickerSlider").value;
+  if(!hasFeasibleMinMax(activeTickers, minUnits, maxUnits)){
+    document.getElementById("optStatus").textContent = `Min ${minUnits}% / Max ${maxUnits}% is infeasible for ${activeTickers.length} selected ETFs.`;
+    btn.disabled = false;
+    document.getElementById("progressBar").style.display = "none";
+    return;
+  }
   if(!hasFeasibleCap(activeTickers, maxUnits)){
     document.getElementById("optStatus").textContent = `Max ${maxUnits}% / ticker needs at least ${Math.ceil(100 / maxUnits)} selected ETFs.`;
     btn.disabled = false;
@@ -1416,7 +1453,7 @@ async function runOptimizer(){
 
   const SAMPLES = 800, points = [];
   for(let i = 0; i < SAMPLES; i++){
-    const alloc = randomPortfolio(activeTickers, maxUnits);
+    const alloc = randomPortfolio(activeTickers, maxUnits, minUnits);
     const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, activeTickers), startIdx, windowLen, activeTickers);
     if(dd <= maxDDThreshold) points.push({cagr, dd, alloc});
     if(i % 160 === 0){fill.style.width = (i / SAMPLES * 55) + "%"; await tick();}
@@ -1436,7 +1473,7 @@ async function runOptimizer(){
   let seedIdx = 0, bestSeed = -Infinity;
   points.forEach((p,i) => {const s = scoreFunc(p.cagr, p.dd, w); if(s > bestSeed){bestSeed = s; seedIdx = i;}});
 
-  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, windowLen, activeTickers, 3000, maxUnits, maxDDThreshold);
+  const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(points[seedIdx].alloc, startIdx, w, windowLen, activeTickers, 3000, maxUnits, maxDDThreshold, minUnits);
   const filteredNote = maxDDThreshold < Infinity ? ` (DD \u2264 ${maxDDThreshold}%)` : "";
   fill.style.width = "100%";
   document.getElementById("optStatus").textContent = `Done \u2014 ${points.length} samples + hill-climb complete${filteredNote}.`;
