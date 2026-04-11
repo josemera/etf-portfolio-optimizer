@@ -299,69 +299,6 @@
   <!-- Cards -->
   <div class="cards" id="cards"></div>
 
-  <!-- Backtest Chart -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('growth',this)">Growth Chart</button>
-    <button class="tab" onclick="switchTab('annual',this)">Annual Returns</button>
-    <button class="tab" onclick="switchTab('gains',this)">% Gains</button>
-  </div>
-  <div class="chart-wrap"><canvas id="mainChart" height="340"></canvas></div>
-
-  <!-- Summary Table -->
-  <div class="table-wrap">
-    <div class="table-title" id="tableTitle">Performance Summary</div>
-    <div class="scroll"><table>
-      <thead><tr>
-        <th class="left">ETF</th><th class="right">Weight</th><th class="right">Final Value</th>
-        <th class="right">Total Return</th><th class="right">CAGR</th>
-        <th class="right">Max Drawdown</th><th class="right">Gain</th>
-      </tr></thead>
-      <tbody id="summaryBody"></tbody>
-    </table></div>
-  </div>
-
-  <!-- Year-by-Year -->
-  <div class="table-wrap">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-      <div class="table-title" id="ybyTitle" style="margin-bottom:0">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(year-end for full years; latest closed month for current partial year)</span></div>
-      <div class="toggle-groups">
-        <div class="toggle-group">
-          <span class="toggle-group-label">Display</span>
-          <button class="toggle-btn active" id="ybyValueDollar" onclick="switchYbyValueMode('dollar',this)">$</button>
-          <button class="toggle-btn" id="ybyValuePercent" onclick="switchYbyValueMode('percent',this)">%</button>
-        </div>
-        <div class="toggle-group">
-          <span class="toggle-group-label">Measure</span>
-          <button class="toggle-btn active" id="ybyScopeCumulative" onclick="switchYbyScopeMode('cumulative',this)">Cumulative</button>
-          <button class="toggle-btn" id="ybyScopeYearly" onclick="switchYbyScopeMode('yearly',this)">Yearly</button>
-        </div>
-      </div>
-    </div>
-    <div class="scroll"><table>
-      <thead id="ybyHead"></thead><tbody id="ybyBody"></tbody>
-    </table></div>
-  </div>
-
-  <!-- Year-by-Year Drawdowns -->
-  <div class="table-wrap">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-      <div class="table-title" style="margin-bottom:0">Calendar-Year Max Drawdown <span style="color:#6b7280;font-weight:400;font-size:11px">(peak-to-trough within each displayed year; summary table shows full-period max drawdown)</span></div>
-      <div class="toggle-groups">
-        <div class="toggle-group">
-          <span class="toggle-group-label">Display</span>
-          <button class="toggle-btn active passive" type="button">%</button>
-        </div>
-        <div class="toggle-group">
-          <span class="toggle-group-label">Measure</span>
-          <button class="toggle-btn active passive" type="button">Yearly</button>
-        </div>
-      </div>
-    </div>
-    <div class="scroll"><table>
-      <thead id="ybyDDHead"></thead><tbody id="ybyDDBody"></tbody>
-    </table></div>
-  </div>
-
   <hr class="divider">
 
   <!-- ══════════════════════ OPTIMIZER ══════════════════════ -->
@@ -448,6 +385,69 @@
         <div id="optResultInner"><div class="opt-empty">Run the optimizer to see results</div></div>
       </div>
     </div>
+  </div>
+
+  <!-- Backtest Chart -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('growth',this)">Growth Chart</button>
+    <button class="tab" onclick="switchTab('annual',this)">Annual Returns</button>
+    <button class="tab" onclick="switchTab('gains',this)">% Gains</button>
+  </div>
+  <div class="chart-wrap"><canvas id="mainChart" height="340"></canvas></div>
+
+  <!-- Summary Table -->
+  <div class="table-wrap">
+    <div class="table-title" id="tableTitle">Performance Summary</div>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th class="left">ETF</th><th class="right">Weight</th><th class="right">Final Value</th>
+        <th class="right">Total Return</th><th class="right">CAGR</th>
+        <th class="right">Max Drawdown</th><th class="right">Gain</th>
+      </tr></thead>
+      <tbody id="summaryBody"></tbody>
+    </table></div>
+  </div>
+
+  <!-- Year-by-Year -->
+  <div class="table-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+      <div class="table-title" id="ybyTitle" style="margin-bottom:0">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(year-end for full years; latest closed month for current partial year)</span></div>
+      <div class="toggle-groups">
+        <div class="toggle-group">
+          <span class="toggle-group-label">Display</span>
+          <button class="toggle-btn active" id="ybyValueDollar" onclick="switchYbyValueMode('dollar',this)">$</button>
+          <button class="toggle-btn" id="ybyValuePercent" onclick="switchYbyValueMode('percent',this)">%</button>
+        </div>
+        <div class="toggle-group">
+          <span class="toggle-group-label">Measure</span>
+          <button class="toggle-btn active" id="ybyScopeCumulative" onclick="switchYbyScopeMode('cumulative',this)">Cumulative</button>
+          <button class="toggle-btn" id="ybyScopeYearly" onclick="switchYbyScopeMode('yearly',this)">Yearly</button>
+        </div>
+      </div>
+    </div>
+    <div class="scroll"><table>
+      <thead id="ybyHead"></thead><tbody id="ybyBody"></tbody>
+    </table></div>
+  </div>
+
+  <!-- Year-by-Year Drawdowns -->
+  <div class="table-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+      <div class="table-title" style="margin-bottom:0">Calendar-Year Max Drawdown <span style="color:#6b7280;font-weight:400;font-size:11px">(peak-to-trough within each displayed year; summary table shows full-period max drawdown)</span></div>
+      <div class="toggle-groups">
+        <div class="toggle-group">
+          <span class="toggle-group-label">Display</span>
+          <button class="toggle-btn active passive" type="button">%</button>
+        </div>
+        <div class="toggle-group">
+          <span class="toggle-group-label">Measure</span>
+          <button class="toggle-btn active passive" type="button">Yearly</button>
+        </div>
+      </div>
+    </div>
+    <div class="scroll"><table>
+      <thead id="ybyDDHead"></thead><tbody id="ybyDDBody"></tbody>
+    </table></div>
   </div>
 
   <hr class="divider">
