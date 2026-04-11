@@ -283,12 +283,17 @@ def main() -> int:
     start_month = args.start_month
     fetched_at = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
 
+    if start_month != DEFAULT_START_MONTH:
+        raise ValueError(f"--start-month must be {DEFAULT_START_MONTH}")
     if start_month > through_month:
         raise ValueError("--start-month must be <= --through-month")
 
     rows_by_ticker = load_existing_rows(args.csv)
     fetched_tickers: list[str] = []
     appended_rows = 0
+
+    if args.refresh_all:
+        rows_by_ticker = defaultdict(dict)
 
     for ticker in tickers:
         new_rows, fetched = compute_rows_for_ticker(

@@ -20,7 +20,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_HTML_PATH = REPO_ROOT / "index.html"
 DEFAULT_CSV_PATH = REPO_ROOT / "data" / "monthly_returns.csv"
-PERIOD1 = 1320105600  # 2011-11-01 UTC, so Jan 2012 can be compared to Dec 2011
+DEFAULT_START_MONTH = "2012-01"
 USER_AGENT = "Mozilla/5.0"
 
 
@@ -137,10 +137,10 @@ def month_start_epoch(month_key: str) -> int:
     return int(dt.datetime(year, month, 1, tzinfo=dt.timezone.utc).timestamp())
 
 
-def fetch_yahoo_monthly_adjclose(ticker: str, through_month: str) -> dict[str, float]:
+def fetch_yahoo_monthly_adjclose(ticker: str, start_month: str, through_month: str) -> dict[str, float]:
     params = urllib.parse.urlencode(
         {
-            "period1": PERIOD1,
+            "period1": month_start_epoch(start_month),
             "period2": month_start_epoch(next_month(through_month)),
             "interval": "1mo",
             "events": "div,splits",
@@ -229,8 +229,14 @@ def main() -> int:
     checked = 0
 
     for ticker in tickers:
+        months = sorted(arrays[ticker])
+        if months[0] != DEFAULT_START_MONTH:
+            raise ValueError(
+                f"{ticker} starts at {months[0]} but this validator only supports datasets starting at {DEFAULT_START_MONTH}"
+            )
+        start_month = previous_month(months[0])
         through_month = max(arrays[ticker])
-        yahoo_adjclose = fetch_yahoo_monthly_adjclose(ticker, through_month)
+        yahoo_adjclose = fetch_yahoo_monthly_adjclose(ticker, start_month, through_month)
         rows = iter_validation_rows(arrays[ticker], yahoo_adjclose)
         for month_key, local_value, raw_return, rounded_return, diff in rows:
             if local_value is None:

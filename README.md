@@ -17,9 +17,11 @@ A self-contained browser tool for backtesting ETF portfolios, selecting an ETF u
 | SMH | VanEck Semiconductor ETF | Semiconductor cycle |
 | VGT | Vanguard Information Technology ETF | Pure US tech sector |
 | XLE | Energy Select Sector SPDR | Energy producers · ~3.5% yield |
-| JEPI | JPMorgan Equity Premium Income ETF | Covered-call income · ~7% yield · **data starts 2020** |
+| GSG | iShares S&P GSCI Commodity-Indexed Trust | Broad commodities basket |
 
-The app's embedded monthly total return data covers **Jan 2012-Dec 2025**. JEPI launched in May 2020; returns before June 2020 are `null` and are treated as **0% return (cash)** in portfolio math rather than being redistributed to other ETFs.
+The app's embedded monthly total return data covers **Jan 2012-Mar 2026**.
+
+The Jan 2012 start is intentional. Some ETFs have earlier Yahoo Finance history, but starting in November 2011 would only provide two months for that first calendar year. The app, CSV export, and validator are all normalized to **Jan 2012** so the backtest window begins on a full-year boundary.
 
 ---
 
@@ -27,7 +29,7 @@ The app's embedded monthly total return data covers **Jan 2012-Dec 2025**. JEPI 
 
 ### 1. Build the ETF Universe
 
-1. Set the **Start Month/Year** (Jan 2012-Dec 2020).
+1. Set the **Start Month/Year** (Jan 2012-Mar 2026).
 2. Click ETF cards to **select or deselect** the universe you want the backtest and optimizer to use.
 3. At least **2 ETFs must remain selected**. Deselecting below that is blocked.
 4. Any selection change resets the portfolio to **equal weights** across the selected ETFs.
@@ -61,6 +63,7 @@ Use the tables:
 - **Year-by-Year Portfolio Values** — two grouped toggles:
   - **Display**: `$` or `%`
   - **Measure**: `Cumulative` or `Yearly`
+  - Full years use year-end values; the current partial year uses the **latest closed month**
 - **Year-by-Year Max Drawdown** — yearly intra-year peak-to-trough drawdown
 
 Hover any ETF card to see the full ETF name and descriptor.
@@ -109,9 +112,7 @@ Important behavior:
 
 The rolling optimizer runs the same optimization logic across **10 rolling 5-year windows** from 2012-16 through 2021-25.
 
-It uses the **currently selected ETF universe**, with one exception:
-
-- **JEPI is always excluded** from rolling analysis because it lacks enough 5-year history for meaningful rolling-window optimization.
+It uses the **currently selected ETF universe**.
 
 Outputs:
 
@@ -128,11 +129,16 @@ Outputs:
 
 ### Return Data
 
-Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. The embedded app dataset contains 168 monthly points per ETF (Jan 2012-Dec 2025).
+Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. The embedded app dataset contains **171 monthly points per ETF** (Jan 2012-Mar 2026).
 
-### JEPI Pre-Inception Handling
+### Date Range Policy
 
-If JEPI has a positive portfolio weight for a period before June 2020, that sleeve earns **0% return** until JEPI history begins. It behaves like cash. It is **not redistributed** across the other ETFs.
+- The embedded app dataset starts at **Jan 2012**
+- The canonical CSV export also starts at **Jan 2012**
+- The validator rejects datasets that do not start at **2012-01**
+- The current end month is **Mar 2026**, because April 2026 is still open as of **April 10, 2026**
+
+This keeps the app aligned to closed monthly data only, on a clean calendar-year boundary.
 
 ### Max Drawdown
 
@@ -160,8 +166,8 @@ With a small ETF universe and a fixed historical sample, the optimizer is prone 
 
 A single optimizer output is often less useful than separating the problem into two buckets:
 
-**Bucket 1 — Safety / Income**  
-Lower drawdown, reliable income. SCHD + JEPI + VPU + cash/Treasuries. Higher `w` settings tend to approximate this.
+**Bucket 1 — Safety / Diversification**  
+Lower drawdown, broader diversification. SCHD + VPU + GSG or other defensive mixes. Higher `w` settings tend to approximate this.
 
 **Bucket 2 — Growth**  
 Higher CAGR, higher tolerated volatility. SMH + QQQ or VGT. Lower `w` settings tend to approximate this.
@@ -200,6 +206,8 @@ AdjClose[m] / AdjClose[m-1] - 1
 
 and compares the one-decimal rounded result against the stored value.
 
+The validator is intentionally constrained to datasets that begin at **2012-01**.
+
 ## Canonical Data Export
 
 Build or update a CSV that can later be ingested into Supabase:
@@ -219,6 +227,7 @@ This writes [data/monthly_returns.csv](/Users/josemera/Sites/etf-portfolio-optim
 Behavior:
 
 - Uses `data/tickers.txt` as the default ETF list, so the export universe is easy to extend
+- Enforces **2012-01** as the earliest supported month
 - Fetches only through the **last completed calendar month**
 - Reuses the existing CSV as a checkpoint and only fetches missing trailing months unless `--refresh-all` is passed
 
