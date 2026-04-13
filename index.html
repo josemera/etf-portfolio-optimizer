@@ -124,9 +124,9 @@
 
   /* Chart / table wrappers */
   .chart-wrap { background: #111827; border-radius: 12px; padding: 16px; border: 1px solid #1f2937; margin-bottom: 20px; }
-  .table-wrap { background: #111827; border-radius: 12px; border: 1px solid #1f2937; overflow: hidden; margin-bottom: 20px; }
+  .table-wrap { background: #111827; border-radius: 12px; border: 1px solid #1f2937; overflow: visible; margin-bottom: 20px; }
   .table-title { padding: 12px 16px; border-bottom: 1px solid #1f2937; font-size: 13px; color: #d1d5db; font-weight: 700; }
-  .scroll { overflow-x: auto; }
+  .scroll { overflow-x: auto; overflow-y: visible; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th { padding: 8px 12px; color: #6b7280; font-size: 12px; border-bottom: 1px solid #1f2937; font-weight: 600; white-space: nowrap; }
   th.left, td.left { text-align: left; }
@@ -234,6 +234,23 @@
   .card-tooltip-sub  { font-size: 11px; color: #6b7280; margin-top: 2px; }
   .card:hover .card-tooltip { display: block; }
   .card:hover { border-color: #374151; transform: translateY(-2px); }
+
+  .header-tip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+  }
+  .header-tip .card-tooltip {
+    left: 50%;
+    right: auto;
+    top: calc(100% + 8px);
+    transform: translateX(-50%);
+    min-width: 220px;
+    text-align: left;
+  }
+  .header-tip:hover .card-tooltip {
+    display: block;
+  }
 </style>
 </head>
 <body>
@@ -816,6 +833,18 @@ function monthYearParts(idx){
 function formatMonthYear(year, month){
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
+function tickerHeaderCell(ticker){
+  const tip = ETF_NAMES[ticker] || {name:ticker, sub:""};
+  return `<th class="right" style="color:${COLORS[ticker]}">
+    <span class="header-tip">
+      ${ticker}
+      <span class="card-tooltip">
+        <span class="card-tooltip-name" style="color:${COLORS[ticker]}">${tip.name}</span>
+        <span class="card-tooltip-sub">${tip.sub}</span>
+      </span>
+    </span>
+  </th>`;
+}
 function getOptimizerWindowLabel(startIdx){
   const {requested, months, available} = getResolvedOptimizerWindow(startIdx);
   const start = monthYearParts(startIdx);
@@ -1080,7 +1109,7 @@ function update(){
     ? (ybyValueMode === "dollar" ? "Period-end cumulative $" : "Cumulative % gain from selected start date")
     : (ybyValueMode === "dollar" ? "Calendar-year / partial-year $ change" : "Calendar-year / partial-year % return");
   document.getElementById("ybyTitle").innerHTML = `Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(${ybyModeLabel})</span>`;
-  document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Total</th></tr>`;
+  document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => tickerHeaderCell(t)).join("")}<th class="right">Total</th></tr>`;
   const yb = document.getElementById("ybyBody"); yb.innerHTML = "";
   const startVals = {}; investedTickers.forEach(t => { startVals[t] = alloc[t]||0; });
   const startPortTotal = investedTickers.reduce((s,t) => s + (alloc[t]||0), 0);
@@ -1136,7 +1165,7 @@ function update(){
   }
 
   // Year-by-Year Max Drawdown table
-  document.getElementById("ybyDDHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => `<th class="right" style="color:${COLORS[t]}">${t}</th>`).join("")}<th class="right">Portfolio</th></tr>`;
+  document.getElementById("ybyDDHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => tickerHeaderCell(t)).join("")}<th class="right">Portfolio</th></tr>`;
   const ddb = document.getElementById("ybyDDBody"); ddb.innerHTML = "";
   for(let year = startYear; year <= DATA_END_YEAR; year++){
     const janIdx = yearStartIdx(year);
