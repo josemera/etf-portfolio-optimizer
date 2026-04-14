@@ -154,6 +154,23 @@
   .slider-label { font-size: 12px; color: #9ca3af; white-space: nowrap; }
   .slider-label.left-lbl { color: #4ade80; }
   .slider-label.right-lbl { color: #f87171; }
+  .slider-label-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 6px;
+  }
+  .slider-track-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .slider-track-row input[type=range] {
+    width: 100%;
+  }
+  .slider-value-row {
+    width: 100%;
+  }
   .optimizer-control {
     display:flex;
     align-items:center;
@@ -176,7 +193,17 @@
     -webkit-appearance: none; width: 18px; height: 18px; background: #fff;
     border-radius: 50%; border: 2px solid #374151; cursor: pointer;
   }
-  .slider-val { font-size: 13px; font-weight: 700; background: #1f2937; border-radius: 6px; padding: 4px 10px; min-width: 84px; text-align: center; }
+  .slider-val {
+    display: block;
+    width: 100%;
+    font-size: 13px;
+    font-weight: 700;
+    background: #1f2937;
+    border-radius: 6px;
+    padding: 6px 10px;
+    text-align: center;
+    margin-top: 10px;
+  }
 
   .run-btn { padding: 10px 28px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
   .run-btn:hover { background: #1d4ed8; }
@@ -291,6 +318,8 @@
   }
 
   body {
+    --right-rail-width: 820px;
+    --pane-divider-size: 10px;
     height: 100vh;
     overflow: hidden;
     padding: 10px;
@@ -333,8 +362,8 @@
   .app-grid {
     min-height: 0;
     display: grid;
-    grid-template-columns: 320px minmax(0, 1fr) clamp(640px, 48vw, 920px);
-    grid-template-areas: "left center right";
+    grid-template-columns: 320px minmax(0, 1fr) var(--pane-divider-size) minmax(520px, var(--right-rail-width));
+    grid-template-areas: "left center divider right";
     gap: 10px;
   }
   .left-rail, .center-workspace, .right-rail {
@@ -351,6 +380,36 @@
   }
   .right-rail {
     grid-area: right;
+  }
+  .pane-divider {
+    grid-area: divider;
+    position: relative;
+    min-height: 0;
+    cursor: col-resize;
+    border-radius: 999px;
+    background: transparent;
+  }
+  .pane-divider::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(59,130,246,0.15), rgba(148,163,184,0.45), rgba(59,130,246,0.15));
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+  .pane-divider:hover::before,
+  .pane-divider.is-active::before {
+    background: linear-gradient(180deg, rgba(96,165,250,0.55), rgba(191,219,254,0.95), rgba(96,165,250,0.55));
+    box-shadow: 0 0 0 1px rgba(96,165,250,0.25);
+  }
+  body.is-pane-resizing,
+  body.is-pane-resizing * {
+    cursor: col-resize !important;
+    user-select: none !important;
   }
   .left-rail, .right-rail {
     overflow: auto;
@@ -692,6 +751,9 @@
         "left center"
         "left right";
     }
+    .pane-divider {
+      display: none;
+    }
     .right-rail-top {
       grid-template-columns: 1fr;
     }
@@ -795,22 +857,40 @@
         <div class="opt-panel compact-panel">
           <div class="opt-desc">Maximizes CAGR / MaxDrawdown^w across selected ETFs using the active start date and optional optimization subwindow.</div>
           <div class="slider-row">
-            <span class="slider-label left-lbl">&uarr; Max Return</span>
-            <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
-            <span class="slider-label right-lbl">&darr; Min Drawdown</span>
-            <span class="slider-val" id="sliderVal">Balanced (1.0)</span>
+            <div class="slider-label-row">
+              <span class="slider-label left-lbl">&uarr; Max Return</span>
+              <span class="slider-label right-lbl">&darr; Min Drawdown</span>
+            </div>
+            <div class="slider-track-row">
+              <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
+            </div>
+            <div class="slider-value-row">
+              <span class="slider-val" id="sliderVal">Balanced (1.0)</span>
+            </div>
           </div>
           <div class="slider-row">
-            <span class="slider-label left-lbl">&#9878; More Balanced</span>
-            <input type="range" id="maxTickerSlider" min="10" max="100" step="5" value="100" oninput="onMaxTickerChange()">
-            <span class="slider-label right-lbl">No Limit</span>
-            <span class="slider-val" id="maxTickerVal">No Limit</span>
+            <div class="slider-label-row">
+              <span class="slider-label left-lbl">&#9878; More Balanced</span>
+              <span class="slider-label right-lbl">No Limit</span>
+            </div>
+            <div class="slider-track-row">
+              <input type="range" id="maxTickerSlider" min="10" max="100" step="5" value="100" oninput="onMaxTickerChange()">
+            </div>
+            <div class="slider-value-row">
+              <span class="slider-val" id="maxTickerVal">No Limit</span>
+            </div>
           </div>
           <div class="slider-row">
-            <span class="slider-label left-lbl">&#9878; Allow Zeroes</span>
-            <input type="range" id="minTickerSlider" min="0" max="20" step="5" value="0" oninput="onMinTickerChange()">
-            <span class="slider-label right-lbl">Force Inclusion</span>
-            <span class="slider-val" id="minTickerVal">Min 0%</span>
+            <div class="slider-label-row">
+              <span class="slider-label left-lbl">&#9878; Allow Zeroes</span>
+              <span class="slider-label right-lbl">Force Inclusion</span>
+            </div>
+            <div class="slider-track-row">
+              <input type="range" id="minTickerSlider" min="0" max="20" step="5" value="0" oninput="onMinTickerChange()">
+            </div>
+            <div class="slider-value-row">
+              <span class="slider-val" id="minTickerVal">Min 0%</span>
+            </div>
           </div>
           <div class="slider-row">
             <label class="optimizer-control">
@@ -889,10 +969,16 @@
         <div class="opt-panel compact-panel">
           <div class="opt-desc">Runs the optimizer on 10 rolling 5-year windows across the embedded dataset using the selected ETF universe.</div>
           <div class="slider-row">
-            <span class="slider-label left-lbl">&uarr; Max Return</span>
-            <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
-            <span class="slider-label right-lbl">&darr; Min Drawdown</span>
-            <span class="slider-val" id="rwSliderVal">Balanced (1.0)</span>
+            <div class="slider-label-row">
+              <span class="slider-label left-lbl">&uarr; Max Return</span>
+              <span class="slider-label right-lbl">&darr; Min Drawdown</span>
+            </div>
+            <div class="slider-track-row">
+              <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
+            </div>
+            <div class="slider-value-row">
+              <span class="slider-val" id="rwSliderVal">Balanced (1.0)</span>
+            </div>
           </div>
           <div class="slider-row">
             <span class="slider-label left-lbl">&#9878; More Balanced</span>
@@ -962,6 +1048,8 @@
         <div id="rwEmptyState" class="opt-empty">Run the rolling analysis to populate this workspace.</div>
       </section>
     </main>
+
+    <div class="pane-divider" id="paneDivider" aria-hidden="true" title="Drag to resize center and right panes"></div>
 
     <aside class="right-rail">
       <section class="panel data-panel">
@@ -1347,6 +1435,14 @@ let rwPerfChart   = null;
 let optimizerCleared = false;
 let rollingCleared   = false;
 let portfolioScoreBasis = null;
+const PANE_STORAGE_KEY = "etf-optimizer-right-rail-width";
+const DESKTOP_PANE_BREAKPOINT = 1400;
+const LEFT_RAIL_WIDTH = 320;
+const PANE_DIVIDER_WIDTH = 10;
+const GRID_COLUMN_GAPS = 30;
+const RIGHT_RAIL_MIN = 520;
+const RIGHT_RAIL_MAX = 920;
+const CENTER_PANE_MIN = 520;
 
 // ══════════════════════════════════════════════════
 // HELPERS
@@ -1356,6 +1452,82 @@ function fmtP(n,plus=false){ if(!isFinite(n))return"\u2014"; return(plus&&n>0?"+
 function stdDev(arr){ const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((s,v)=>s+(v-m)**2,0)/arr.length); }
 function tick(){ return new Promise(r=>setTimeout(r,0)); }
 function fmtW(n){ if(!isFinite(n))return"\u2014"; return n.toFixed(0) + "%"; }
+function isPaneResizable(){ return window.innerWidth > DESKTOP_PANE_BREAKPOINT; }
+function getPaneWidthBounds(){
+  const grid = document.querySelector(".app-grid");
+  if(!grid) return {min: RIGHT_RAIL_MIN, max: RIGHT_RAIL_MAX};
+  const available = grid.getBoundingClientRect().width - LEFT_RAIL_WIDTH - PANE_DIVIDER_WIDTH - GRID_COLUMN_GAPS;
+  const max = Math.max(RIGHT_RAIL_MIN, Math.min(RIGHT_RAIL_MAX, available - CENTER_PANE_MIN));
+  const min = Math.min(RIGHT_RAIL_MIN, max);
+  return {min, max};
+}
+function resizeInteractiveCharts(){
+  [mainChart, frontierChart, rwAllocChart, rwPerfChart].forEach(chart => {
+    if(chart) chart.resize();
+  });
+}
+function applyRightRailWidth(width, persist=false){
+  if(!isPaneResizable()){
+    document.body.style.removeProperty("--right-rail-width");
+    return;
+  }
+  const {min, max} = getPaneWidthBounds();
+  const clamped = Math.max(min, Math.min(max, width));
+  document.body.style.setProperty("--right-rail-width", `${clamped}px`);
+  if(persist) window.localStorage.setItem(PANE_STORAGE_KEY, String(Math.round(clamped)));
+  resizeInteractiveCharts();
+}
+function syncRightRailWidth(){
+  if(!isPaneResizable()){
+    document.body.style.removeProperty("--right-rail-width");
+    return;
+  }
+  const saved = parseFloat(window.localStorage.getItem(PANE_STORAGE_KEY) || "");
+  if(Number.isFinite(saved)){
+    applyRightRailWidth(saved, false);
+    return;
+  }
+  const rightRail = document.querySelector(".right-rail");
+  const fallback = rightRail ? rightRail.getBoundingClientRect().width : RIGHT_RAIL_MAX;
+  applyRightRailWidth(fallback, false);
+}
+function initPaneResizer(){
+  const divider = document.getElementById("paneDivider");
+  const rightRail = document.querySelector(".right-rail");
+  if(!divider || !rightRail) return;
+  let session = null;
+  const stopResize = () => {
+    if(!session) return;
+    divider.classList.remove("is-active");
+    document.body.classList.remove("is-pane-resizing");
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", stopResize);
+    window.removeEventListener("pointercancel", stopResize);
+    applyRightRailWidth(session.width, true);
+    session = null;
+  };
+  const onPointerMove = (event) => {
+    if(!session) return;
+    session.width = session.startWidth - (event.clientX - session.startX);
+    applyRightRailWidth(session.width, false);
+  };
+  divider.addEventListener("pointerdown", (event) => {
+    if(!isPaneResizable()) return;
+    session = {
+      startX: event.clientX,
+      startWidth: rightRail.getBoundingClientRect().width,
+      width: rightRail.getBoundingClientRect().width,
+    };
+    divider.classList.add("is-active");
+    document.body.classList.add("is-pane-resizing");
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", stopResize);
+    window.addEventListener("pointercancel", stopResize);
+    event.preventDefault();
+  });
+  window.addEventListener("resize", syncRightRailWidth);
+  syncRightRailWidth();
+}
 function safeReturn(ticker, monthIdx){
   const r = MONTHLY_RETURNS[ticker][monthIdx];
   return r === null || r === undefined ? 0 : r;
@@ -2478,6 +2650,7 @@ onSliderChange();
 onMaxTickerChange();
 onRwSliderChange();
 onRwMaxTickerChange();
+initPaneResizer();
 setRollingPanelExpanded(false);
 clearOptimizerPreview();
 update();
