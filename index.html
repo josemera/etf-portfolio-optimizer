@@ -180,7 +180,21 @@
   /* Frontier layout */
   .frontier-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
   @media(max-width:720px){ .frontier-layout{ grid-template-columns:1fr; } }
-  .frontier-wrap { background: #111827; border-radius: 10px; padding: 14px; border: 1px solid #1f2937; }
+  .frontier-wrap {
+    background: #111827;
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid #1f2937;
+    display: flex;
+    flex-direction: column;
+    height: 360px;
+    min-height: 360px;
+  }
+  #frontierChart {
+    flex: 1;
+    min-height: 0;
+    width: 100% !important;
+  }
   .frontier-hint { color: #374151; font-size: 11px; margin-top: 8px; text-align: center; }
   .opt-result { background: #111827; border-radius: 10px; padding: 16px; border: 1px solid #1f2937; }
   .opt-result-title { font-size: 11px; color: #6b7280; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 12px; }
@@ -199,7 +213,8 @@
   .opt-empty { color: #374151; font-size: 13px; text-align: center; padding: 32px 16px; }
 
   /* Rolling window */
-  .rw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .rw-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .rw-grid > * { min-width: 0; }
   @media(max-width:720px){ .rw-grid{ grid-template-columns:1fr; } }
   .insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
   @media(max-width:720px){ .insight-grid{ grid-template-columns:1fr; } }
@@ -251,268 +266,703 @@
   .header-tip:hover .card-tooltip {
     display: block;
   }
+
+  body {
+    height: 100vh;
+    overflow: hidden;
+    padding: 10px;
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .app-shell {
+    height: calc(100vh - 20px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+  }
+  .topbar {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #0b1220 0%, #08101b 100%);
+    border: 1px solid #182234;
+    border-radius: 10px;
+  }
+  .topbar h1 {
+    font-size: 18px;
+    margin-bottom: 2px;
+  }
+  .topbar .subtitle {
+    margin-bottom: 0;
+    font-size: 12px;
+  }
+  .topbar-note {
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .app-grid {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr) clamp(640px, 48vw, 920px);
+    grid-template-areas: "left center right";
+    gap: 10px;
+  }
+  .left-rail, .center-workspace, .right-rail {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .left-rail {
+    grid-area: left;
+  }
+  .center-workspace {
+    grid-area: center;
+  }
+  .right-rail {
+    grid-area: right;
+  }
+  .left-rail, .right-rail {
+    overflow: auto;
+    padding-right: 2px;
+  }
+  .left-rail > .panel,
+  .right-rail > .panel {
+    flex: 0 0 auto;
+  }
+  .center-workspace {
+    overflow: auto;
+    padding-right: 2px;
+  }
+  .panel {
+    background: #0b1220;
+    border: 1px solid #1a2436;
+    border-radius: 10px;
+    padding: 10px;
+    min-height: 0;
+  }
+  .panel-head {
+    display: flex;
+    align-items: start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .panel-head-spread {
+    justify-content: space-between;
+  }
+  .panel-eyebrow {
+    color: #6b7280;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .panel-title {
+    color: #e5e7eb;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .controls,
+  .opt-panel,
+  .chart-wrap,
+  .table-wrap,
+  .frontier-wrap,
+  .opt-result,
+  .insight-card {
+    margin-bottom: 0;
+  }
+  .controls,
+  .opt-panel,
+  .chart-wrap,
+  .table-wrap,
+  .frontier-wrap,
+  .opt-result {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    border-radius: 0;
+  }
+  .compact-panel {
+    background: transparent;
+  }
+  .controls-top {
+    margin-bottom: 0;
+    gap: 10px;
+  }
+  .control-group-full,
+  .optimizer-control,
+  .numeric-control {
+    width: 100%;
+  }
+  .selector-panel .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 0;
+  }
+  .card {
+    padding: 10px;
+    border-radius: 8px;
+  }
+  .card-header {
+    margin-bottom: 3px;
+  }
+  .card-ticker {
+    font-size: 12px;
+  }
+  .card-value {
+    font-size: 14px;
+  }
+  .card-meta,
+  .card-rank,
+  .card-state {
+    font-size: 10px;
+  }
+  .slider-row {
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .run-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .numeric-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: #9ca3af;
+    font-size: 12px;
+  }
+  .numeric-control-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .numeric-control input {
+    width: 64px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    color: #f9fafb;
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  .main-chart-panel {
+    min-height: 420px;
+  }
+  .chart-panel {
+    display: flex;
+    flex-direction: column;
+  }
+  .chart-stage {
+    flex: 1;
+    min-height: 0;
+  }
+  .rolling-panel {
+    flex: 1;
+  }
+  .rolling-results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  .chart-wrap-compact {
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    padding: 10px;
+    background: #111827;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 340px;
+    min-height: 340px;
+    overflow: hidden;
+  }
+  #rwAllocChart,
+  #rwPerfChart {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+  .subpanel-title {
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .stats-panel .summary-stats-grid {
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stats-panel .stat {
+    text-align: left;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  .stats-panel .stat-wide {
+    grid-column: span 2;
+  }
+  .stats-panel .stat-value {
+    font-size: 16px;
+  }
+  .data-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .data-tabs {
+    flex-wrap: wrap;
+    justify-content: end;
+    margin-bottom: 0;
+  }
+  .data-tab {
+    display: none;
+    flex: 1;
+    min-height: 0;
+  }
+  .data-tab.active {
+    display: flex;
+  }
+  .table-fill {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .table-toolbar {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    border-bottom: 1px solid #1f2937;
+  }
+  .table-fill .table-title {
+    padding: 10px 12px;
+  }
+  .table-toolbar .table-title {
+    padding: 0;
+    border-bottom: 0;
+  }
+  .scroll-fill {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+  .footnote {
+    text-align: left;
+    padding-bottom: 0;
+    font-size: 10px;
+  }
+  hr.divider,
+  .container {
+    display: none;
+  }
+  @media (max-width: 1400px) {
+    .app-grid {
+      grid-template-columns: 280px minmax(0, 1fr);
+      grid-template-areas:
+        "left center"
+        "left right";
+    }
+  }
+  @media (max-width: 1180px) {
+    body {
+      height: auto;
+      overflow: auto;
+    }
+    .app-shell {
+      height: auto;
+    }
+    .app-grid {
+      grid-template-columns: 1fr;
+    }
+    .left-rail,
+    .center-workspace,
+    .right-rail {
+      overflow: visible;
+    }
+  }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Portfolio Backtest</h1>
-  <p class="subtitle">Total return with dividends reinvested &middot; $100K starting portfolio &middot; Monthly data</p>
-
-  <!-- Controls -->
-  <div class="controls">
-    <div class="controls-top">
-      <div class="control-group">
-        <label>Start Date</label>
-        <div class="start-date-row">
-          <select id="startMonth" onchange="onStartDateChange()">
-            <option value="1">Jan</option><option value="2">Feb</option>
-            <option value="3">Mar</option><option value="4">Apr</option>
-            <option value="5">May</option><option value="6">Jun</option>
-            <option value="7">Jul</option><option value="8">Aug</option>
-            <option value="9">Sep</option><option value="10">Oct</option>
-            <option value="11">Nov</option><option value="12">Dec</option>
-          </select>
-          <select id="startYear" onchange="onStartDateChange()">
-            <option value="2012">2012</option><option value="2013">2013</option>
-            <option value="2014">2014</option><option value="2015">2015</option>
-            <option value="2016">2016</option><option value="2017">2017</option>
-            <option value="2018">2018</option><option value="2019">2019</option>
-            <option value="2020">2020</option><option value="2021">2021</option>
-            <option value="2022">2022</option><option value="2023">2023</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option><option value="2026">2026</option>
-          </select>
-        </div>
-      </div>
-      <div class="control-group">
-        <label>&nbsp;</label>
-        <button class="reset-btn" onclick="resetAllocations()">&#8634; Reset to Equal Weights</button>
-      </div>
-      <div class="summary-stats">
-        <div class="stat">
-          <div class="stat-label">Total Allocated</div>
-          <div id="totalBadge" class="total-badge bad">$0</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Final Value</div>
-          <div class="stat-value green" id="statValue">&mdash;</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Portfolio CAGR</div>
-          <div class="stat-value blue" id="statCagr">&mdash;</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Max Drawdown</div>
-          <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Total Portfolio Gain</div>
-          <div class="stat-value green" id="statGain">&mdash;</div>
-        </div>
-      </div>
+<div class="app-shell">
+  <header class="topbar">
+    <div>
+      <h1>Portfolio Backtest</h1>
+      <p class="subtitle">Total return with dividends reinvested &middot; $100K starting portfolio &middot; Monthly data</p>
     </div>
+    <div class="topbar-note">Desktop workspace layout for fixed-height use</div>
+  </header>
+
+  <div class="app-grid">
+    <aside class="left-rail">
+      <div class="panel controls-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Backtest Controls</div>
+            <div class="panel-title">Portfolio Inputs</div>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="controls-top">
+            <div class="control-group">
+              <label>Start Date</label>
+              <div class="start-date-row">
+                <select id="startMonth" onchange="onStartDateChange()">
+                  <option value="1">Jan</option><option value="2">Feb</option>
+                  <option value="3">Mar</option><option value="4">Apr</option>
+                  <option value="5">May</option><option value="6">Jun</option>
+                  <option value="7">Jul</option><option value="8">Aug</option>
+                  <option value="9">Sep</option><option value="10">Oct</option>
+                  <option value="11">Nov</option><option value="12">Dec</option>
+                </select>
+                <select id="startYear" onchange="onStartDateChange()">
+                  <option value="2012">2012</option><option value="2013">2013</option>
+                  <option value="2014">2014</option><option value="2015">2015</option>
+                  <option value="2016">2016</option><option value="2017">2017</option>
+                  <option value="2018">2018</option><option value="2019">2019</option>
+                  <option value="2020">2020</option><option value="2021">2021</option>
+                  <option value="2022">2022</option><option value="2023">2023</option>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option><option value="2026">2026</option>
+                </select>
+              </div>
+            </div>
+            <div class="control-group control-group-full">
+              <label>&nbsp;</label>
+              <button class="reset-btn" onclick="resetAllocations()">&#8634; Reset to Equal Weights</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel selector-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Universe</div>
+            <div class="panel-title">ETF Selection</div>
+          </div>
+        </div>
+        <div class="cards" id="cards"></div>
+      </div>
+
+      <div class="panel control-stack">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Optimizer</div>
+            <div class="panel-title">Main Run Controls</div>
+          </div>
+        </div>
+        <div class="opt-panel compact-panel">
+          <div class="opt-desc">Maximizes CAGR / MaxDrawdown^w across selected ETFs using the active start date and optional optimization subwindow.</div>
+          <div class="slider-row">
+            <span class="slider-label left-lbl">&uarr; Max Return</span>
+            <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
+            <span class="slider-label right-lbl">&darr; Min Drawdown</span>
+            <span class="slider-val" id="sliderVal">Balanced (1.0)</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label left-lbl">&#9878; More Balanced</span>
+            <input type="range" id="maxTickerSlider" min="10" max="100" step="5" value="100" oninput="onMaxTickerChange()">
+            <span class="slider-label right-lbl">No Limit</span>
+            <span class="slider-val" id="maxTickerVal">No Limit</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label left-lbl">&#9878; Allow Zeroes</span>
+            <input type="range" id="minTickerSlider" min="0" max="20" step="5" value="0" oninput="onMinTickerChange()">
+            <span class="slider-label right-lbl">Force Inclusion</span>
+            <span class="slider-val" id="minTickerVal">Min 0%</span>
+          </div>
+          <div class="slider-row">
+            <label class="optimizer-control">
+              <span>Optimizer Start</span>
+              <div class="start-date-row">
+                <select id="optStartMonth" onchange="onOptStartDateChange()">
+                  <option value="1">Jan</option><option value="2">Feb</option>
+                  <option value="3">Mar</option><option value="4">Apr</option>
+                  <option value="5">May</option><option value="6">Jun</option>
+                  <option value="7">Jul</option><option value="8">Aug</option>
+                  <option value="9">Sep</option><option value="10">Oct</option>
+                  <option value="11">Nov</option><option value="12">Dec</option>
+                </select>
+                <select id="optStartYear" onchange="onOptStartDateChange()">
+                  <option value="2012">2012</option><option value="2013">2013</option>
+                  <option value="2014">2014</option><option value="2015">2015</option>
+                  <option value="2016">2016</option><option value="2017">2017</option>
+                  <option value="2018">2018</option><option value="2019">2019</option>
+                  <option value="2020">2020</option><option value="2021">2021</option>
+                  <option value="2022">2022</option><option value="2023">2023</option>
+                  <option value="2024">2024</option><option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+            </label>
+          </div>
+          <div class="slider-row">
+            <label class="optimizer-control" for="optWindow">
+              <span>Optimization Window</span>
+              <select id="optWindow" onchange="onOptWindowChange()">
+                <option value="full">Full Period</option>
+                <option value="12">12 months</option>
+                <option value="24">24 months</option>
+                <option value="36">36 months</option>
+                <option value="60">60 months</option>
+                <option value="84">84 months</option>
+                <option value="120">120 months</option>
+              </select>
+            </label>
+            <span class="optimizer-subnote" id="optWindowResolved">Optimizing on full period.</span>
+          </div>
+          <div class="run-row">
+            <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
+            <label class="numeric-control">
+              <span>Max DD filter</span>
+              <div class="numeric-control-field">
+                <input id="maxDDFilter" type="number" min="0" max="100" step="1" placeholder="none">
+                <span>%</span>
+              </div>
+            </label>
+          </div>
+          <div class="opt-status" id="optStatus">Set risk preference above, then click Run Optimizer.</div>
+          <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="panel control-stack">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Rolling</div>
+            <div class="panel-title">Window Analysis</div>
+          </div>
+        </div>
+        <div class="opt-panel compact-panel">
+          <div class="opt-desc">Runs the optimizer on 10 rolling 5-year windows across the embedded dataset using the selected ETF universe.</div>
+          <div class="slider-row">
+            <span class="slider-label left-lbl">&uarr; Max Return</span>
+            <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
+            <span class="slider-label right-lbl">&darr; Min Drawdown</span>
+            <span class="slider-val" id="rwSliderVal">Balanced (1.0)</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label left-lbl">&#9878; More Balanced</span>
+            <input type="range" id="rwMaxTickerSlider" min="10" max="100" step="5" value="100" oninput="onRwMaxTickerChange()">
+            <span class="slider-label right-lbl">No Limit</span>
+            <span class="slider-val" id="rwMaxTickerVal">No Limit</span>
+          </div>
+          <div class="run-row">
+            <button class="run-btn" id="rwRunBtn" onclick="runRollingOptimizer()">Run Rolling Analysis</button>
+          </div>
+          <div class="opt-status" id="rwStatus">10 windows &times; 60-month optimizer each.</div>
+          <div class="progress-bar" id="rwProgressBar"><div class="progress-fill" id="rwProgressFill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="center-workspace">
+      <section class="panel chart-panel main-chart-panel">
+        <div class="panel-head panel-head-spread">
+          <div>
+            <div class="panel-eyebrow">Backtest View</div>
+            <div class="panel-title">Primary Chart</div>
+          </div>
+          <div class="tabs">
+            <button class="tab active" onclick="switchTab('growth',this)">Growth</button>
+            <button class="tab" onclick="switchTab('annual',this)">Annual</button>
+            <button class="tab" onclick="switchTab('gains',this)">% Gains</button>
+          </div>
+        </div>
+        <div class="chart-wrap chart-stage"><canvas id="mainChart" height="340"></canvas></div>
+      </section>
+
+      <section class="panel chart-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Optimizer Output</div>
+            <div class="panel-title">Efficient Frontier</div>
+          </div>
+        </div>
+        <div class="frontier-wrap">
+          <canvas id="frontierChart" height="300" style="cursor:crosshair"></canvas>
+          <div class="frontier-hint">Click any dot to preview that allocation &nbsp;&middot;&nbsp; &#9733; = hill-climb optimum</div>
+        </div>
+      </section>
+
+      <section class="panel chart-panel rolling-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Rolling Output</div>
+            <div class="panel-title">Window Charts</div>
+          </div>
+        </div>
+        <div id="rwResults" class="rolling-results" style="display:none">
+          <div class="insight-grid" id="rwInsights"></div>
+          <div class="rw-grid">
+            <div class="chart-wrap chart-wrap-compact">
+              <div class="subpanel-title">Optimal Allocation by Window (%)</div>
+              <canvas id="rwAllocChart" height="260"></canvas>
+            </div>
+            <div class="chart-wrap chart-wrap-compact">
+              <div class="subpanel-title">CAGR vs Max Drawdown by Window</div>
+              <canvas id="rwPerfChart" height="260"></canvas>
+            </div>
+          </div>
+        </div>
+        <div id="rwEmptyState" class="opt-empty">Run the rolling analysis to populate this workspace.</div>
+      </section>
+    </main>
+
+    <aside class="right-rail">
+      <section class="panel stats-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Portfolio State</div>
+            <div class="panel-title">Key Metrics</div>
+          </div>
+        </div>
+        <div class="summary-stats summary-stats-grid">
+          <div class="stat">
+            <div class="stat-label">Total Allocated</div>
+            <div id="totalBadge" class="total-badge bad">$0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Final Value</div>
+            <div class="stat-value green" id="statValue">&mdash;</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Portfolio CAGR</div>
+            <div class="stat-value blue" id="statCagr">&mdash;</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Max Drawdown</div>
+            <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
+          </div>
+          <div class="stat stat-wide">
+            <div class="stat-label">Total Portfolio Gain</div>
+            <div class="stat-value green" id="statGain">&mdash;</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Preview</div>
+            <div class="panel-title">Optimal Allocation</div>
+          </div>
+        </div>
+        <div class="opt-result">
+          <div id="optResultInner"><div class="opt-empty">Run the optimizer to see results</div></div>
+        </div>
+      </section>
+
+      <section class="panel data-panel">
+        <div class="panel-head panel-head-spread">
+          <div>
+            <div class="panel-eyebrow">Tables</div>
+            <div class="panel-title">Portfolio Data</div>
+          </div>
+          <div class="tabs data-tabs">
+            <button class="tab active" onclick="switchDataTab('summary',this)">Summary</button>
+            <button class="tab" onclick="switchDataTab('yearly',this)">Yearly</button>
+            <button class="tab" onclick="switchDataTab('drawdown',this)">Drawdown</button>
+            <button class="tab" onclick="switchDataTab('rolling',this)">Rolling</button>
+          </div>
+        </div>
+
+        <div class="data-tab active" id="dataTabSummary">
+          <div class="table-wrap table-fill">
+            <div class="table-title" id="tableTitle">Performance Summary</div>
+            <div class="scroll scroll-fill"><table>
+              <thead><tr>
+                <th class="left">ETF</th><th class="right">Weight</th><th class="right">Final Value</th>
+                <th class="right">Total Return</th><th class="right">CAGR</th>
+                <th class="right">Max Drawdown</th><th class="right">Gain</th>
+              </tr></thead>
+              <tbody id="summaryBody"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <div class="data-tab" id="dataTabYearly">
+          <div class="table-wrap table-fill">
+            <div class="table-toolbar">
+              <div class="table-title" id="ybyTitle">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(year-end for full years; latest closed month for current partial year)</span></div>
+              <div class="toggle-groups">
+                <div class="toggle-group">
+                  <span class="toggle-group-label">Display</span>
+                  <button class="toggle-btn active" id="ybyValueDollar" onclick="switchYbyValueMode('dollar',this)">$</button>
+                  <button class="toggle-btn" id="ybyValuePercent" onclick="switchYbyValueMode('percent',this)">%</button>
+                </div>
+                <div class="toggle-group">
+                  <span class="toggle-group-label">Measure</span>
+                  <button class="toggle-btn active" id="ybyScopeCumulative" onclick="switchYbyScopeMode('cumulative',this)">Cumulative</button>
+                  <button class="toggle-btn" id="ybyScopeYearly" onclick="switchYbyScopeMode('yearly',this)">Yearly</button>
+                </div>
+              </div>
+            </div>
+            <div class="scroll scroll-fill"><table>
+              <thead id="ybyHead"></thead><tbody id="ybyBody"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <div class="data-tab" id="dataTabDrawdown">
+          <div class="table-wrap table-fill">
+            <div class="table-toolbar">
+              <div class="table-title">Calendar-Year Max Drawdown <span style="color:#6b7280;font-weight:400;font-size:11px">(peak-to-trough within each displayed year; summary table shows full-period max drawdown)</span></div>
+              <div class="toggle-groups">
+                <div class="toggle-group">
+                  <span class="toggle-group-label">Display</span>
+                  <button class="toggle-btn active passive" type="button">%</button>
+                </div>
+                <div class="toggle-group">
+                  <span class="toggle-group-label">Measure</span>
+                  <button class="toggle-btn active passive" type="button">Yearly</button>
+                </div>
+              </div>
+            </div>
+            <div class="scroll scroll-fill"><table>
+              <thead id="ybyDDHead"></thead><tbody id="ybyDDBody"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <div class="data-tab" id="dataTabRolling">
+          <div class="table-wrap table-fill">
+            <div class="table-title">Rolling Window Results &mdash; 5-Year (60-Month) Optimal Allocations</div>
+            <div class="scroll scroll-fill"><table>
+              <thead id="rwTableHead"></thead><tbody id="rwTableBody"></tbody>
+            </table></div>
+          </div>
+        </div>
+      </section>
+
+      <p class="footnote">Monthly total returns including dividends reinvested (Jan 2012&ndash;Mar 2026). Data sourced from Yahoo Finance adjusted close prices. Past performance does not guarantee future results. Not financial advice.</p>
+    </aside>
   </div>
-
-  <!-- Cards -->
-  <div class="cards" id="cards"></div>
-
-  <hr class="divider">
-
-  <!-- ══════════════════════ OPTIMIZER ══════════════════════ -->
-  <div class="opt-panel">
-    <div class="opt-title">&#9889; Portfolio Optimizer</div>
-    <div class="opt-desc">Finds the percentage allocation (in 1% steps) that maximizes CAGR / MaxDrawdown^w across the selected ETF cards. Uses the selected start date and an optional optimization subwindow.</div>
-    <div class="slider-row">
-      <span class="slider-label left-lbl">&uarr; Max Return</span>
-      <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
-      <span class="slider-label right-lbl">&darr; Min Drawdown</span>
-      <span class="slider-val" id="sliderVal">Balanced (1.0)</span>
-    </div>
-    <div class="slider-row">
-      <span class="slider-label left-lbl">&#9878; More Balanced</span>
-      <input type="range" id="maxTickerSlider" min="10" max="100" step="5" value="100" oninput="onMaxTickerChange()">
-      <span class="slider-label right-lbl">No Limit</span>
-      <span class="slider-val" id="maxTickerVal">No Limit</span>
-    </div>
-    <div class="slider-row">
-      <span class="slider-label left-lbl">&#9878; Allow Zeroes</span>
-      <input type="range" id="minTickerSlider" min="0" max="20" step="5" value="0" oninput="onMinTickerChange()">
-      <span class="slider-label right-lbl">Force Inclusion</span>
-      <span class="slider-val" id="minTickerVal">Min 0%</span>
-    </div>
-    <div class="slider-row">
-      <label class="optimizer-control">
-        <span>Optimizer Start</span>
-        <div class="start-date-row">
-          <select id="optStartMonth" onchange="onOptStartDateChange()">
-            <option value="1">Jan</option><option value="2">Feb</option>
-            <option value="3">Mar</option><option value="4">Apr</option>
-            <option value="5">May</option><option value="6">Jun</option>
-            <option value="7">Jul</option><option value="8">Aug</option>
-            <option value="9">Sep</option><option value="10">Oct</option>
-            <option value="11">Nov</option><option value="12">Dec</option>
-          </select>
-          <select id="optStartYear" onchange="onOptStartDateChange()">
-            <option value="2012">2012</option><option value="2013">2013</option>
-            <option value="2014">2014</option><option value="2015">2015</option>
-            <option value="2016">2016</option><option value="2017">2017</option>
-            <option value="2018">2018</option><option value="2019">2019</option>
-            <option value="2020">2020</option><option value="2021">2021</option>
-            <option value="2022">2022</option><option value="2023">2023</option>
-            <option value="2024">2024</option><option value="2025">2025</option>
-            <option value="2026">2026</option>
-          </select>
-        </div>
-      </label>
-    </div>
-    <div class="slider-row">
-      <label class="optimizer-control" for="optWindow">
-        <span>Optimization Window</span>
-        <select id="optWindow" onchange="onOptWindowChange()">
-          <option value="full">Full Period</option>
-          <option value="12">12 months</option>
-          <option value="24">24 months</option>
-          <option value="36">36 months</option>
-          <option value="60">60 months</option>
-          <option value="84">84 months</option>
-          <option value="120">120 months</option>
-        </select>
-      </label>
-      <span class="optimizer-subnote" id="optWindowResolved">Optimizing on full period.</span>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
-      <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
-      <label style="color:#9ca3af;font-size:12px;display:flex;align-items:center;gap:6px;">
-        Max DD filter:
-        <input id="maxDDFilter" type="number" min="0" max="100" step="1" placeholder="none"
-          style="width:64px;background:#1f2937;border:1px solid #374151;border-radius:6px;color:#f9fafb;padding:4px 8px;font-size:12px;">
-        <span style="color:#6b7280">%</span>
-      </label>
-      <span class="opt-status" id="optStatus">Set risk preference above, then click Run Optimizer.</span>
-    </div>
-    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-    <div class="frontier-layout">
-      <div class="frontier-wrap">
-        <div style="color:#9ca3af;font-size:12px;font-weight:600;margin-bottom:10px;">Efficient Frontier</div>
-        <canvas id="frontierChart" height="300" style="cursor:crosshair"></canvas>
-        <div class="frontier-hint">Click any dot to preview that allocation &nbsp;&middot;&nbsp; &#9733; = hill-climb optimum</div>
-      </div>
-      <div class="opt-result">
-        <div class="opt-result-title">Optimal Allocation</div>
-        <div id="optResultInner"><div class="opt-empty">Run the optimizer to see results</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Backtest Chart -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('growth',this)">Growth Chart</button>
-    <button class="tab" onclick="switchTab('annual',this)">Annual Returns</button>
-    <button class="tab" onclick="switchTab('gains',this)">% Gains</button>
-  </div>
-  <div class="chart-wrap"><canvas id="mainChart" height="340"></canvas></div>
-
-  <!-- Summary Table -->
-  <div class="table-wrap">
-    <div class="table-title" id="tableTitle">Performance Summary</div>
-    <div class="scroll"><table>
-      <thead><tr>
-        <th class="left">ETF</th><th class="right">Weight</th><th class="right">Final Value</th>
-        <th class="right">Total Return</th><th class="right">CAGR</th>
-        <th class="right">Max Drawdown</th><th class="right">Gain</th>
-      </tr></thead>
-      <tbody id="summaryBody"></tbody>
-    </table></div>
-  </div>
-
-  <!-- Year-by-Year -->
-  <div class="table-wrap">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-      <div class="table-title" id="ybyTitle" style="margin-bottom:0">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(year-end for full years; latest closed month for current partial year)</span></div>
-      <div class="toggle-groups">
-        <div class="toggle-group">
-          <span class="toggle-group-label">Display</span>
-          <button class="toggle-btn active" id="ybyValueDollar" onclick="switchYbyValueMode('dollar',this)">$</button>
-          <button class="toggle-btn" id="ybyValuePercent" onclick="switchYbyValueMode('percent',this)">%</button>
-        </div>
-        <div class="toggle-group">
-          <span class="toggle-group-label">Measure</span>
-          <button class="toggle-btn active" id="ybyScopeCumulative" onclick="switchYbyScopeMode('cumulative',this)">Cumulative</button>
-          <button class="toggle-btn" id="ybyScopeYearly" onclick="switchYbyScopeMode('yearly',this)">Yearly</button>
-        </div>
-      </div>
-    </div>
-    <div class="scroll"><table>
-      <thead id="ybyHead"></thead><tbody id="ybyBody"></tbody>
-    </table></div>
-  </div>
-
-  <!-- Year-by-Year Drawdowns -->
-  <div class="table-wrap">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-      <div class="table-title" style="margin-bottom:0">Calendar-Year Max Drawdown <span style="color:#6b7280;font-weight:400;font-size:11px">(peak-to-trough within each displayed year; summary table shows full-period max drawdown)</span></div>
-      <div class="toggle-groups">
-        <div class="toggle-group">
-          <span class="toggle-group-label">Display</span>
-          <button class="toggle-btn active passive" type="button">%</button>
-        </div>
-        <div class="toggle-group">
-          <span class="toggle-group-label">Measure</span>
-          <button class="toggle-btn active passive" type="button">Yearly</button>
-        </div>
-      </div>
-    </div>
-    <div class="scroll"><table>
-      <thead id="ybyDDHead"></thead><tbody id="ybyDDBody"></tbody>
-    </table></div>
-  </div>
-
-  <hr class="divider">
-
-  <!-- ══════════════════ ROLLING WINDOW ══════════════════ -->
-  <div class="opt-panel">
-    <div class="opt-title">&#128202; Rolling Window Optimizer</div>
-    <div class="opt-desc">Runs the optimizer on each 5-year (60-month) window across the full embedded dataset, stepping annually. Uses the currently selected ETF universe.</div>
-    <div class="slider-row">
-      <span class="slider-label left-lbl">&uarr; Max Return</span>
-      <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
-      <span class="slider-label right-lbl">&darr; Min Drawdown</span>
-      <span class="slider-val" id="rwSliderVal">Balanced (1.0)</span>
-    </div>
-    <div class="slider-row">
-      <span class="slider-label left-lbl">&#9878; More Balanced</span>
-      <input type="range" id="rwMaxTickerSlider" min="10" max="100" step="5" value="100" oninput="onRwMaxTickerChange()">
-      <span class="slider-label right-lbl">No Limit</span>
-      <span class="slider-val" id="rwMaxTickerVal">No Limit</span>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
-      <button class="run-btn" id="rwRunBtn" onclick="runRollingOptimizer()">Run Rolling Analysis</button>
-      <span class="opt-status" id="rwStatus">10 windows &times; 60-month optimizer each.</span>
-    </div>
-    <div class="progress-bar" id="rwProgressBar"><div class="progress-fill" id="rwProgressFill" style="width:0%"></div></div>
-
-    <div id="rwResults" style="display:none">
-      <div class="insight-grid" id="rwInsights"></div>
-      <div class="rw-grid">
-        <div class="chart-wrap" style="margin-bottom:0">
-          <div style="color:#9ca3af;font-size:12px;font-weight:600;margin-bottom:10px;">Optimal Allocation by Window (%)</div>
-          <canvas id="rwAllocChart" height="260"></canvas>
-        </div>
-        <div class="chart-wrap" style="margin-bottom:0">
-          <div style="color:#9ca3af;font-size:12px;font-weight:600;margin-bottom:10px;">CAGR vs Max Drawdown by Window</div>
-          <canvas id="rwPerfChart" height="260"></canvas>
-        </div>
-      </div>
-      <div class="table-wrap" style="margin-top:16px">
-        <div class="table-title">Rolling Window Results &mdash; 5-Year (60-Month) Optimal Allocations</div>
-        <div class="scroll"><table>
-          <thead id="rwTableHead"></thead><tbody id="rwTableBody"></tbody>
-        </table></div>
-      </div>
-    </div>
-  </div>
-
-  <p class="footnote">Monthly total returns including dividends reinvested (Jan 2012&ndash;Mar 2026). Data sourced from Yahoo Finance adjusted close prices. Past performance does not guarantee future results. Not financial advice.</p>
 </div>
 
 <script>
@@ -1216,7 +1666,7 @@ function renderMainChart(growthRows, annualRows, active){
         ...active.map(t => ({label:t, data:growthRows.map(r => r[t]), borderColor:COLORS[t], backgroundColor:"transparent", borderWidth:1.5, pointRadius:0, tension:0.3})),
         {label:"Portfolio", data:growthRows.map(r => r.Portfolio), borderColor:"#fff", backgroundColor:"transparent", borderWidth:2, pointRadius:0, borderDash:[6,3], tension:0.3}
       ]},
-      options:{responsive:true, interaction:{mode:"index", intersect:false},
+      options:{responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
         plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
           tooltip:{
             position:"cursor",
@@ -1247,7 +1697,7 @@ function renderMainChart(growthRows, annualRows, active){
         ...active.map(t => ({label:t, data:growthRows.map(r => toGainPct(r,t)), borderColor:COLORS[t], backgroundColor:"transparent", borderWidth:1.5, pointRadius:0, tension:0.3})),
         {label:"Portfolio", data:growthRows.map(r => toGainPct(r,"Portfolio")), borderColor:"#fff", backgroundColor:"transparent", borderWidth:2, pointRadius:0, borderDash:[6,3], tension:0.3}
       ]},
-      options:{responsive:true, interaction:{mode:"index", intersect:false},
+      options:{responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
         plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
           tooltip:{
             position:"cursor",
@@ -1273,7 +1723,7 @@ function renderMainChart(growthRows, annualRows, active){
   } else {
     mainChart = new Chart(ctx, {type:"bar",
       data:{labels: annualRows.map(r => r.year), datasets: active.map(t => ({label:t, data:annualRows.map(r => r[t]), backgroundColor:COLORS[t]+"cc", borderColor:COLORS[t], borderWidth:1}))},
-      options:{responsive:true, interaction:{mode:"index", intersect:false},
+      options:{responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
         plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
           tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
             callbacks:{label:c => ` ${c.dataset.label}: ${fmtP(c.parsed.y,true)}`}}},
@@ -1335,8 +1785,16 @@ function updateOptimizerControls(activeTickers){
 
 function switchTab(tab, btn){
   currentTab = tab;
-  document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active"); update();
+  btn.parentElement.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  update();
+}
+
+function switchDataTab(tab, btn){
+  btn.parentElement.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".data-tab").forEach(panel => panel.classList.remove("active"));
+  document.getElementById(`dataTab${tab.charAt(0).toUpperCase()}${tab.slice(1)}`).classList.add("active");
 }
 
 function switchYbyValueMode(mode, btn){
@@ -1560,7 +2018,7 @@ function renderFrontier(w, highlighted){
       {label:"\u2605 Optimized", data:[{x:+optPoint.cagr.toFixed(2), y:+optPoint.dd.toFixed(2)}], backgroundColor:"#4ade80", borderColor:"#16a34a", pointRadius:10, pointHoverRadius:12, pointStyle:"star"},
       {label:"\u25c9 Selected", data:[selectedPt], backgroundColor:"rgba(255,255,255,0.9)", borderColor:"#fff", pointRadius:7, pointHoverRadius:9}
     ]},
-    options:{responsive:true, animation:false, onClick:(evt) => onFrontierClick(evt, ptAllocs, pareto),
+    options:{responsive:true, maintainAspectRatio:false, animation:false, onClick:(evt) => onFrontierClick(evt, ptAllocs, pareto),
       plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
         tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
           callbacks:{title:()=>"Portfolio", label:c => ` CAGR: ${c.parsed.x.toFixed(1)}%   Max DD: ${c.parsed.y.toFixed(1)}%`}}},
@@ -1669,7 +2127,8 @@ async function runRollingOptimizer(){
   btn.disabled = false;
   setTimeout(() => {document.getElementById("rwProgressBar").style.display = "none"; fill.style.width = "0%";}, 700);
 
-  document.getElementById("rwResults").style.display = "block";
+  document.getElementById("rwResults").style.display = "flex";
+  document.getElementById("rwEmptyState").style.display = "none";
   renderRwInsights(results);
   renderRwAllocChart(results);
   renderRwPerfChart(results);
@@ -1722,7 +2181,7 @@ function renderRwAllocChart(results){
   rwAllocChart = new Chart(ctx, {type:"bar",
     data:{labels:results.map(r => r.label),
       datasets:rollingTickers.map(t => ({label:t, data:results.map(r => (r.alloc[t]||0)), backgroundColor:COLORS[t]+"cc", borderColor:COLORS[t], borderWidth:1}))},
-    options:{responsive:true,
+    options:{responsive:true, maintainAspectRatio:false,
       plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
         tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
           callbacks:{label:c => ` ${c.dataset.label}: ${c.parsed.y}%`}}},
@@ -1740,7 +2199,7 @@ function renderRwPerfChart(results){
       {label:"CAGR (%)", data:results.map(r => +r.cagr.toFixed(1)), borderColor:"#4ade80", backgroundColor:"transparent", borderWidth:2, pointRadius:4, yAxisID:"y"},
       {label:"Max Drawdown (%)", data:results.map(r => +r.dd.toFixed(1)), borderColor:"#f87171", backgroundColor:"transparent", borderWidth:2, pointRadius:4, borderDash:[4,3], yAxisID:"y"}
     ]},
-    options:{responsive:true, interaction:{mode:"index", intersect:false},
+    options:{responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
       plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
         tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
           callbacks:{label:c => ` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}},

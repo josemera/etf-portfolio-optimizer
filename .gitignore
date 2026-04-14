@@ -5,3 +5,4 @@ SPEC.md
 
 # IDE
 .idea/
+/.codex/config.toml
