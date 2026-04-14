@@ -331,6 +331,18 @@
     overflow: auto;
     padding-right: 2px;
   }
+  .right-rail-top {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(340px, 1.1fr);
+    gap: 10px;
+  }
+  .preview-panel {
+    min-width: 0;
+  }
+  .preview-panel .opt-result {
+    height: calc(100% - 39px);
+    min-height: 0;
+  }
   .left-rail > .panel,
   .right-rail > .panel {
     flex: 0 0 auto;
@@ -587,6 +599,9 @@
         "left center"
         "left right";
     }
+    .right-rail-top {
+      grid-template-columns: 1fr;
+    }
   }
   @media (max-width: 1180px) {
     body {
@@ -835,49 +850,6 @@
     </main>
 
     <aside class="right-rail">
-      <section class="panel stats-panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-eyebrow">Portfolio State</div>
-            <div class="panel-title">Key Metrics</div>
-          </div>
-        </div>
-        <div class="summary-stats summary-stats-grid">
-          <div class="stat">
-            <div class="stat-label">Total Allocated</div>
-            <div id="totalBadge" class="total-badge bad">$0</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Final Value</div>
-            <div class="stat-value green" id="statValue">&mdash;</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Portfolio CAGR</div>
-            <div class="stat-value blue" id="statCagr">&mdash;</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Max Drawdown</div>
-            <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
-          </div>
-          <div class="stat stat-wide">
-            <div class="stat-label">Total Portfolio Gain</div>
-            <div class="stat-value green" id="statGain">&mdash;</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-eyebrow">Preview</div>
-            <div class="panel-title">Optimal Allocation</div>
-          </div>
-        </div>
-        <div class="opt-result">
-          <div id="optResultInner"><div class="opt-empty">Run the optimizer to see results</div></div>
-        </div>
-      </section>
-
       <section class="panel data-panel">
         <div class="panel-head panel-head-spread">
           <div>
@@ -959,6 +931,51 @@
           </div>
         </div>
       </section>
+
+      <div class="right-rail-top">
+        <section class="panel stats-panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-eyebrow">Portfolio State</div>
+              <div class="panel-title">Key Metrics</div>
+            </div>
+          </div>
+          <div class="summary-stats summary-stats-grid">
+            <div class="stat">
+              <div class="stat-label">Total Allocated</div>
+              <div id="totalBadge" class="total-badge bad">$0</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Final Value</div>
+              <div class="stat-value green" id="statValue">&mdash;</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Portfolio CAGR</div>
+              <div class="stat-value blue" id="statCagr">&mdash;</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Max Drawdown</div>
+              <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
+            </div>
+            <div class="stat stat-wide">
+              <div class="stat-label">Total Portfolio Gain</div>
+              <div class="stat-value green" id="statGain">&mdash;</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel preview-panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-eyebrow">Preview</div>
+              <div class="panel-title">Optimal Allocation</div>
+            </div>
+          </div>
+          <div class="opt-result">
+            <div id="optResultInner"><div class="opt-empty">Run the optimizer to see results</div></div>
+          </div>
+        </section>
+      </div>
 
       <p class="footnote">Monthly total returns including dividends reinvested (Jan 2012&ndash;Mar 2026). Data sourced from Yahoo Finance adjusted close prices. Past performance does not guarantee future results. Not financial advice.</p>
     </aside>
