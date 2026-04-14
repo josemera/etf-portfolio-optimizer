@@ -1579,6 +1579,65 @@ function onOptStartDateChange(){
   });
 }
 
+function renderYearByYearTable(startIdx, startYear, investedTickers, alloc){
+  const ybyModeLabel = ybyScopeMode === "cumulative"
+    ? (ybyValueMode === "dollar" ? "Period-end cumulative $" : "Cumulative % gain from selected start date")
+    : (ybyValueMode === "dollar" ? "Calendar-year / partial-year $ change" : "Calendar-year / partial-year % return");
+  document.getElementById("ybyTitle").innerHTML = `Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(${ybyModeLabel})</span>`;
+  document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => tickerHeaderCell(t)).join("")}<th class="right">Total</th></tr>`;
+  const yb = document.getElementById("ybyBody"); yb.innerHTML = "";
+  const startVals = {}; investedTickers.forEach(t => { startVals[t] = alloc[t]||0; });
+  const startPortTotal = investedTickers.reduce((s,t) => s + (alloc[t]||0), 0);
+  for(let year = startYear; year <= DATA_END_YEAR; year++){
+    const decCumIdx = yearTerminalIdx(year);
+    const prevDecCumIdx = year === startYear ? startIdx : yearEndIdx(year - 1);
+    const vals = {};
+    investedTickers.forEach(t => { vals[t] = Math.round((alloc[t]||0) * CUM[t][decCumIdx] / CUM[t][startIdx]); });
+    const portTotal = investedTickers.reduce((s,t) => s + vals[t], 0);
+    const tr = document.createElement("tr");
+    if(ybyScopeMode === "cumulative" && ybyValueMode === "percent"){
+      const portGain = startPortTotal > 0 ? (portTotal / startPortTotal - 1) * 100 : 0;
+      const portCls = portGain >= 0 ? "green" : "red";
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
+        const gain = startVals[t] > 0 ? (vals[t] / startVals[t] - 1) * 100 : 0;
+        const cls = gain >= 0 ? "green" : "red";
+        return `<td class="right mono ${cls}">${gain >= 0 ? "+" : ""}${gain.toFixed(1)}%</td>`;
+      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portGain >= 0 ? "+" : ""}${portGain.toFixed(1)}%</td>`;
+    } else if(ybyScopeMode === "cumulative" && ybyValueMode === "dollar"){
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => `<td class="right mono">${fmtK(vals[t])}</td>`).join("")}<td class="right mono" style="font-weight:700">${fmtK(portTotal)}</td>`;
+    } else if(ybyScopeMode === "yearly" && ybyValueMode === "percent"){
+      const prevPortTotal = year === startYear
+        ? startPortTotal
+        : investedTickers.reduce((s,t) => s + Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]), 0);
+      const portGain = prevPortTotal > 0 ? (portTotal / prevPortTotal - 1) * 100 : 0;
+      const portCls = portGain >= 0 ? "green" : "red";
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
+        const prevVal = year === startYear
+          ? (alloc[t]||0)
+          : Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]);
+        const gain = prevVal > 0 ? (vals[t] / prevVal - 1) * 100 : 0;
+        const cls = gain >= 0 ? "green" : "red";
+        return `<td class="right mono ${cls}">${gain >= 0 ? "+" : ""}${gain.toFixed(1)}%</td>`;
+      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portGain >= 0 ? "+" : ""}${portGain.toFixed(1)}%</td>`;
+    } else {
+      const prevPortTotal = year === startYear
+        ? startPortTotal
+        : investedTickers.reduce((s,t) => s + Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]), 0);
+      const portDelta = portTotal - prevPortTotal;
+      const portCls = portDelta >= 0 ? "green" : "red";
+      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
+        const prevVal = year === startYear
+          ? (alloc[t]||0)
+          : Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]);
+        const delta = vals[t] - prevVal;
+        const cls = delta >= 0 ? "green" : "red";
+        return `<td class="right mono ${cls}">${delta >= 0 ? "+" : "-"}${fmtK(Math.abs(delta))}</td>`;
+      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portDelta >= 0 ? "+" : "-"}${fmtK(Math.abs(portDelta))}</td>`;
+    }
+    yb.appendChild(tr);
+  }
+}
+
 // ══════════════════════════════════════════════════
 // MAIN UPDATE
 // ══════════════════════════════════════════════════
@@ -1660,65 +1719,7 @@ function update(){
     <td class="right green">+${fmtK(finalRow.Portfolio - total)}</td>`;
   tb.appendChild(ptr);
 
-  // Year-by-year table (year-end for full years; latest closed month for current partial year)
-  const ybyModeLabel = ybyScopeMode === "cumulative"
-    ? (ybyValueMode === "dollar" ? "Period-end cumulative $" : "Cumulative % gain from selected start date")
-    : (ybyValueMode === "dollar" ? "Calendar-year / partial-year $ change" : "Calendar-year / partial-year % return");
-  document.getElementById("ybyTitle").innerHTML = `Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(${ybyModeLabel})</span>`;
-  document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => tickerHeaderCell(t)).join("")}<th class="right">Total</th></tr>`;
-  const yb = document.getElementById("ybyBody"); yb.innerHTML = "";
-  const startVals = {}; investedTickers.forEach(t => { startVals[t] = alloc[t]||0; });
-  const startPortTotal = investedTickers.reduce((s,t) => s + (alloc[t]||0), 0);
-  for(let year = startYear; year <= DATA_END_YEAR; year++){
-    const decCumIdx = yearTerminalIdx(year);
-    const prevDecCumIdx = year === startYear ? startIdx : yearEndIdx(year - 1);
-    const vals = {};
-    investedTickers.forEach(t => { vals[t] = Math.round((alloc[t]||0) * CUM[t][decCumIdx] / CUM[t][startIdx]); });
-    const portTotal = investedTickers.reduce((s,t) => s + vals[t], 0);
-    const tr = document.createElement("tr");
-    if(ybyScopeMode === "cumulative" && ybyValueMode === "percent"){
-      const portGain = startPortTotal > 0 ? (portTotal / startPortTotal - 1) * 100 : 0;
-      const portCls = portGain >= 0 ? "green" : "red";
-      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
-        const gain = startVals[t] > 0 ? (vals[t] / startVals[t] - 1) * 100 : 0;
-        const cls = gain >= 0 ? "green" : "red";
-        return `<td class="right mono ${cls}">${gain >= 0 ? "+" : ""}${gain.toFixed(1)}%</td>`;
-      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portGain >= 0 ? "+" : ""}${portGain.toFixed(1)}%</td>`;
-    } else if(ybyScopeMode === "cumulative" && ybyValueMode === "dollar"){
-      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
-        return `<td class="right mono">${fmtK(vals[t])}</td>`;
-      }).join("")}<td class="right mono" style="font-weight:700">${fmtK(portTotal)}</td>`;
-    } else if(ybyScopeMode === "yearly" && ybyValueMode === "percent"){
-      const prevPortTotal = year === startYear
-        ? startPortTotal
-        : investedTickers.reduce((s,t) => s + Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]), 0);
-      const portGain = prevPortTotal > 0 ? (portTotal / prevPortTotal - 1) * 100 : 0;
-      const portCls = portGain >= 0 ? "green" : "red";
-      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
-        const prevVal = year === startYear
-          ? (alloc[t]||0)
-          : Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]);
-        const gain = prevVal > 0 ? (vals[t] / prevVal - 1) * 100 : 0;
-        const cls = gain >= 0 ? "green" : "red";
-        return `<td class="right mono ${cls}">${gain >= 0 ? "+" : ""}${gain.toFixed(1)}%</td>`;
-      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portGain >= 0 ? "+" : ""}${portGain.toFixed(1)}%</td>`;
-    } else {
-      const prevPortTotal = year === startYear
-        ? startPortTotal
-        : investedTickers.reduce((s,t) => s + Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]), 0);
-      const portDelta = portTotal - prevPortTotal;
-      const portCls = portDelta >= 0 ? "green" : "red";
-      tr.innerHTML = `<td class="left mono muted">${year}</td>${investedTickers.map(t => {
-        const prevVal = year === startYear
-          ? (alloc[t]||0)
-          : Math.round((alloc[t]||0) * CUM[t][prevDecCumIdx] / CUM[t][startIdx]);
-        const delta = vals[t] - prevVal;
-        const cls = delta >= 0 ? "green" : "red";
-        return `<td class="right mono ${cls}">${delta >= 0 ? "+" : "-"}${fmtK(Math.abs(delta))}</td>`;
-      }).join("")}<td class="right mono ${portCls}" style="font-weight:700">${portDelta >= 0 ? "+" : "-"}${fmtK(Math.abs(portDelta))}</td>`;
-    }
-    yb.appendChild(tr);
-  }
+  renderYearByYearTable(startIdx, startYear, investedTickers, alloc);
 
   // Year-by-Year Max Drawdown table
   document.getElementById("ybyDDHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => tickerHeaderCell(t)).join("")}<th class="right">Portfolio</th></tr>`;
@@ -1913,14 +1914,22 @@ function switchYbyValueMode(mode, btn){
   ybyValueMode = mode;
   [document.getElementById("ybyValueDollar"), document.getElementById("ybyValuePercent")].forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
-  update();
+  const startIdx = getStartIdx();
+  const startYear = DATA_START_YEAR + Math.floor(startIdx / 12);
+  const alloc = getPortfolioAllocations();
+  const investedTickers = getSelectedTickers().filter(t => (weights[t]||0) > 0);
+  renderYearByYearTable(startIdx, startYear, investedTickers, alloc);
 }
 
 function switchYbyScopeMode(mode, btn){
   ybyScopeMode = mode;
   [document.getElementById("ybyScopeCumulative"), document.getElementById("ybyScopeYearly")].forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
-  update();
+  const startIdx = getStartIdx();
+  const startYear = DATA_START_YEAR + Math.floor(startIdx / 12);
+  const alloc = getPortfolioAllocations();
+  const investedTickers = getSelectedTickers().filter(t => (weights[t]||0) > 0);
+  renderYearByYearTable(startIdx, startYear, investedTickers, alloc);
 }
 
 // ══════════════════════════════════════════════════
