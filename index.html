@@ -187,8 +187,12 @@
     border: 1px solid #1f2937;
     display: flex;
     flex-direction: column;
-    height: 360px;
     min-height: 360px;
+  }
+  .optimizer-panel .frontier-wrap {
+    flex: 1;
+    height: auto;
+    min-height: 500px;
   }
   #frontierChart {
     flex: 1;
@@ -474,12 +478,28 @@
     display: flex;
     flex-direction: column;
   }
+  .optimizer-panel {
+    flex: 1;
+    min-height: 560px;
+  }
   .chart-stage {
     flex: 1;
     min-height: 0;
   }
   .rolling-panel {
     flex: 1;
+  }
+  .rolling-panel.collapsed {
+    flex: 0 0 auto;
+  }
+  .rolling-panel.collapsed #rwResults {
+    display: none !important;
+  }
+  .rolling-panel.collapsed #rwEmptyState {
+    display: block;
+    padding: 0;
+    color: #6b7280;
+    font-size: 12px;
   }
   .rolling-results {
     display: flex;
@@ -812,7 +832,7 @@
         <div class="chart-wrap chart-stage"><canvas id="mainChart" height="340"></canvas></div>
       </section>
 
-      <section class="panel chart-panel">
+      <section class="panel chart-panel optimizer-panel" id="optimizerPanel">
         <div class="panel-head">
           <div>
             <div class="panel-eyebrow">Optimizer Output</div>
@@ -825,7 +845,7 @@
         </div>
       </section>
 
-      <section class="panel chart-panel rolling-panel">
+      <section class="panel chart-panel rolling-panel collapsed" id="rollingPanel">
         <div class="panel-head">
           <div>
             <div class="panel-eyebrow">Rolling Output</div>
@@ -2092,6 +2112,12 @@ function applyOptimal(){
   window.scrollTo({top:0, behavior:"smooth"});
 }
 
+function setRollingPanelExpanded(expanded){
+  const panel = document.getElementById("rollingPanel");
+  if(!panel) return;
+  panel.classList.toggle("collapsed", !expanded);
+}
+
 // ══════════════════════════════════════════════════
 // ROLLING WINDOW OPTIMIZER (60-month windows)
 // ══════════════════════════════════════════════════
@@ -2144,6 +2170,7 @@ async function runRollingOptimizer(){
   btn.disabled = false;
   setTimeout(() => {document.getElementById("rwProgressBar").style.display = "none"; fill.style.width = "0%";}, 700);
 
+  setRollingPanelExpanded(true);
   document.getElementById("rwResults").style.display = "flex";
   document.getElementById("rwEmptyState").style.display = "none";
   renderRwInsights(results);
@@ -2262,6 +2289,7 @@ onSliderChange();
 onMaxTickerChange();
 onRwSliderChange();
 onRwMaxTickerChange();
+setRollingPanelExpanded(false);
 clearOptimizerPreview();
 update();
 </script>
