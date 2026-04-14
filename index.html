@@ -173,6 +173,17 @@
   .run-btn { padding: 10px 28px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
   .run-btn:hover { background: #1d4ed8; }
   .run-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+  .clear-btn {
+    padding: 10px 16px;
+    background: #1f2937;
+    color: #d1d5db;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .clear-btn:hover { background: #273244; }
   .opt-status { color: #4b5563; font-size: 12px; }
   .progress-bar  { height: 4px; background: #1f2937; border-radius: 2px; overflow: hidden; margin: 10px 0; display: none; }
   .progress-fill { height: 100%; background: linear-gradient(to right, #2563eb, #4ade80); border-radius: 2px; transition: width 0.15s; }
@@ -445,7 +456,9 @@
   }
   .run-row {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 8px;
   }
@@ -773,6 +786,7 @@
           </div>
           <div class="run-row">
             <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
+            <button class="clear-btn" type="button" onclick="clearOptimizerRun()">Clear</button>
             <label class="numeric-control">
               <span>Max DD filter</span>
               <div class="numeric-control-field">
@@ -809,6 +823,7 @@
           </div>
           <div class="run-row">
             <button class="run-btn" id="rwRunBtn" onclick="runRollingOptimizer()">Run Rolling Analysis</button>
+            <button class="clear-btn" type="button" onclick="clearRollingAnalysis()">Clear</button>
           </div>
           <div class="opt-status" id="rwStatus">10 windows &times; 60-month optimizer each.</div>
           <div class="progress-bar" id="rwProgressBar"><div class="progress-fill" id="rwProgressFill" style="width:0%"></div></div>
@@ -1246,6 +1261,8 @@ let frontierData  = null;
 let previewAlloc  = null;
 let rwAllocChart  = null;
 let rwPerfChart   = null;
+let optimizerCleared = false;
+let rollingCleared   = false;
 
 // ══════════════════════════════════════════════════
 // HELPERS
@@ -1346,11 +1363,63 @@ function refreshOptimizerWindowResolved(){
   document.getElementById("optWindowResolved").textContent = getOptimizerWindowLabel(getOptimizerStartIdx());
 }
 function clearOptimizerPreview(message="Run the optimizer to see results"){
+  optimizerCleared = true;
   frontierData = null;
   previewAlloc = null;
   if(frontierChart){ frontierChart.destroy(); frontierChart = null; }
   const inner = document.getElementById("optResultInner");
   if(inner) inner.innerHTML = `<div class="opt-empty">${message}</div>`;
+}
+function resetOptimizerControls(){
+  document.getElementById("riskSlider").value = "1";
+  document.getElementById("maxTickerSlider").value = "100";
+  document.getElementById("minTickerSlider").value = "0";
+  document.getElementById("optStartMonth").value = document.getElementById("startMonth").value;
+  document.getElementById("optStartYear").value = document.getElementById("startYear").value;
+  document.getElementById("optWindow").value = "full";
+  document.getElementById("maxDDFilter").value = "";
+  syncOptimizerDateControls();
+  onSliderChange();
+  onMaxTickerChange();
+  onMinTickerChange();
+  refreshOptimizerWindowResolved();
+}
+function clearOptimizerRun(){
+  resetOptimizerControls();
+  const btn = document.getElementById("runBtn");
+  const fill = document.getElementById("progressFill");
+  btn.disabled = false;
+  fill.style.width = "0%";
+  document.getElementById("progressBar").style.display = "none";
+  document.getElementById("optStatus").textContent = "Set risk preference above, then click Run Optimizer.";
+  clearOptimizerPreview("Run the optimizer to see results");
+}
+function clearRollingResults(){
+  rollingCleared = true;
+  if(rwAllocChart){ rwAllocChart.destroy(); rwAllocChart = null; }
+  if(rwPerfChart){ rwPerfChart.destroy(); rwPerfChart = null; }
+  document.getElementById("rwInsights").innerHTML = "";
+  document.getElementById("rwTableHead").innerHTML = "";
+  document.getElementById("rwTableBody").innerHTML = "";
+  document.getElementById("rwResults").style.display = "none";
+  document.getElementById("rwEmptyState").style.display = "block";
+  setRollingPanelExpanded(false);
+}
+function resetRollingControls(){
+  document.getElementById("rwRiskSlider").value = "1";
+  document.getElementById("rwMaxTickerSlider").value = "100";
+  onRwSliderChange();
+  onRwMaxTickerChange();
+}
+function clearRollingAnalysis(){
+  resetRollingControls();
+  const btn = document.getElementById("rwRunBtn");
+  const fill = document.getElementById("rwProgressFill");
+  btn.disabled = false;
+  fill.style.width = "0%";
+  document.getElementById("rwProgressBar").style.display = "none";
+  document.getElementById("rwStatus").textContent = "10 windows × 60-month optimizer each.";
+  clearRollingResults();
 }
 function preserveScrollDuring(action){
   const x = window.scrollX;
@@ -1799,6 +1868,9 @@ function updateOptimizerControls(activeTickers){
   } else if(!hasFeasibleCap(activeTickers, maxUnits)){
     runBtn.disabled = true;
     optStatus.textContent = `Max ${maxUnits}% / ticker needs at least ${Math.ceil(100 / maxUnits)} selected ETFs.`;
+  } else if(optimizerCleared){
+    runBtn.disabled = false;
+    optStatus.textContent = "Set risk preference above, then click Run Optimizer.";
   } else if(!frontierData){
     runBtn.disabled = false;
     optStatus.textContent = `Selected universe: ${activeTickers.join(", ")}. ${getOptimizerWindowLabel(getOptimizerStartIdx())}`;
@@ -1814,6 +1886,9 @@ function updateOptimizerControls(activeTickers){
   } else if(!hasFeasibleCap(rollingTickers, rwMaxUnits)){
     rwRunBtn.disabled = true;
     rwStatus.textContent = `Max ${rwMaxUnits}% / ticker needs at least ${Math.ceil(100 / rwMaxUnits)} selected ETFs.`;
+  } else if(rollingCleared){
+    rwRunBtn.disabled = false;
+    rwStatus.textContent = "10 windows × 60-month optimizer each.";
   } else {
     rwRunBtn.disabled = false;
     rwStatus.textContent = `Rolling universe: ${rollingTickers.join(", ")}.`;
@@ -1903,12 +1978,14 @@ function hillClimb(startAlloc, startIdx, w, windowLen, tickers=TICKERS, iteratio
 // MAIN OPTIMIZER
 // ══════════════════════════════════════════════════
 function onSliderChange(){
+  optimizerCleared = false;
   const w = +document.getElementById("riskSlider").value;
   document.getElementById("sliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
   if(frontierData) highlightBest(w);
 }
 
 function onMaxTickerChange(){
+  optimizerCleared = false;
   const v = +document.getElementById("maxTickerSlider").value;
   document.getElementById("maxTickerVal").textContent = v >= 100 ? "No Limit" : `Max ${v}% / ticker`;
   preserveScrollDuring(() => {
@@ -1918,6 +1995,7 @@ function onMaxTickerChange(){
 }
 
 function onMinTickerChange(){
+  optimizerCleared = false;
   const v = +document.getElementById("minTickerSlider").value;
   document.getElementById("minTickerVal").textContent = `Min ${v}%`;
   preserveScrollDuring(() => {
@@ -1927,6 +2005,7 @@ function onMinTickerChange(){
 }
 
 function onOptWindowChange(){
+  optimizerCleared = false;
   preserveScrollDuring(() => {
     refreshOptimizerWindowResolved();
     clearOptimizerPreview("Optimization window changed. Run the optimizer to see results.");
@@ -1935,17 +2014,20 @@ function onOptWindowChange(){
 }
 
 function onRwSliderChange(){
+  rollingCleared = false;
   const w = +document.getElementById("rwRiskSlider").value;
   document.getElementById("rwSliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
 }
 
 function onRwMaxTickerChange(){
+  rollingCleared = false;
   const v = +document.getElementById("rwMaxTickerSlider").value;
   document.getElementById("rwMaxTickerVal").textContent = v >= 100 ? "No Limit" : `Max ${v}% / ticker`;
   updateOptimizerControls(getSelectedTickers());
 }
 
 async function runOptimizer(){
+  optimizerCleared = false;
   const activeTickers = getSelectedTickers();
   if(activeTickers.length < 2) return;
   const startIdx = getOptimizerStartIdx();
@@ -2122,6 +2204,7 @@ function setRollingPanelExpanded(expanded){
 // ROLLING WINDOW OPTIMIZER (60-month windows)
 // ══════════════════════════════════════════════════
 async function runRollingOptimizer(){
+  rollingCleared = false;
   const rollingTickers = getRollingTickers();
   if(rollingTickers.length < 2) return;
   const w    = +document.getElementById("rwRiskSlider").value;
