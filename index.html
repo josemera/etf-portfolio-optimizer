@@ -144,6 +144,13 @@
   .opt-desc { color: #4b5563; font-size: 12px; margin-bottom: 18px; }
 
   .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .control-stack .slider-row {
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.65);
+  }
   .slider-label { font-size: 12px; color: #9ca3af; white-space: nowrap; }
   .slider-label.left-lbl { color: #4ade80; }
   .slider-label.right-lbl { color: #f87171; }
@@ -158,6 +165,7 @@
     color:#6b7280;
     font-size:11px;
     margin-top:8px;
+    width: 100%;
   }
   input[type=range] {
     -webkit-appearance: none; appearance: none; flex: 1; min-width: 180px; height: 6px;
@@ -458,9 +466,19 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px;
-    margin-bottom: 8px;
+    margin: 4px 0 8px;
+    padding: 14px;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.78);
+  }
+  .run-row .run-btn,
+  .run-row .clear-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
   }
   .numeric-control {
     display: flex;
@@ -784,16 +802,24 @@
             </label>
             <span class="optimizer-subnote" id="optWindowResolved">Optimizing on full period.</span>
           </div>
+          <div class="slider-row">
+            <label class="optimizer-control" for="maxDDFilter">
+              <span>Max DD filter</span>
+              <select id="maxDDFilter">
+                <option value="">none</option>
+                <option value="20">20%</option>
+                <option value="25">25%</option>
+                <option value="30">30%</option>
+                <option value="35">35%</option>
+                <option value="40">40%</option>
+                <option value="45">45%</option>
+                <option value="50">50%</option>
+              </select>
+            </label>
+          </div>
           <div class="run-row">
             <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
             <button class="clear-btn" type="button" onclick="clearOptimizerRun()">Clear</button>
-            <label class="numeric-control">
-              <span>Max DD filter</span>
-              <div class="numeric-control-field">
-                <input id="maxDDFilter" type="number" min="0" max="100" step="1" placeholder="none">
-                <span>%</span>
-              </div>
-            </label>
           </div>
           <div class="opt-status" id="optStatus">Set risk preference above, then click Run Optimizer.</div>
           <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
@@ -992,7 +1018,11 @@
               <div class="stat-label">Max Drawdown</div>
               <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
             </div>
-            <div class="stat stat-wide">
+            <div class="stat">
+              <div class="stat-label">Portfolio Score</div>
+              <div class="stat-value blue" id="statScore">&mdash;</div>
+            </div>
+            <div class="stat">
               <div class="stat-label">Total Portfolio Gain</div>
               <div class="stat-value green" id="statGain">&mdash;</div>
             </div>
@@ -1263,6 +1293,7 @@ let rwAllocChart  = null;
 let rwPerfChart   = null;
 let optimizerCleared = false;
 let rollingCleared   = false;
+let portfolioScoreBasis = null;
 
 // ══════════════════════════════════════════════════
 // HELPERS
@@ -1369,6 +1400,16 @@ function clearOptimizerPreview(message="Run the optimizer to see results"){
   if(frontierChart){ frontierChart.destroy(); frontierChart = null; }
   const inner = document.getElementById("optResultInner");
   if(inner) inner.innerHTML = `<div class="opt-empty">${message}</div>`;
+}
+function refreshPortfolioScore(){
+  const statScore = document.getElementById("statScore");
+  if(!statScore) return;
+  if(!portfolioScoreBasis){
+    statScore.textContent = "\u2014";
+    return;
+  }
+  const w = +document.getElementById("riskSlider").value;
+  statScore.textContent = scoreFunc(portfolioScoreBasis.cagr, portfolioScoreBasis.dd, w).toFixed(2);
 }
 function resetOptimizerControls(){
   document.getElementById("riskSlider").value = "1";
@@ -1668,6 +1709,8 @@ function update(){
   document.getElementById("statDD").textContent = "-" + portMaxDD.toFixed(1) + "%";
   const gainVal = finalRow.Portfolio - total;
   document.getElementById("statGain").textContent = `${gainVal >= 0 ? "+" : "-"}${fmtK(Math.abs(gainVal))}`;
+  portfolioScoreBasis = total > 0 ? {cagr: portCagr, dd: portMaxDD} : null;
+  refreshPortfolioScore();
   const startMonth = (startIdx % 12) + 1;
   const startYear  = DATA_START_YEAR + Math.floor(startIdx / 12);
   document.getElementById("tableTitle").textContent = `Performance Summary (${MONTH_NAMES[startMonth - 1]} ${startYear}\u2013${DISPLAY_END_LABEL})`;
@@ -1990,6 +2033,7 @@ function onSliderChange(){
   optimizerCleared = false;
   const w = +document.getElementById("riskSlider").value;
   document.getElementById("sliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
+  refreshPortfolioScore();
   if(frontierData) highlightBest(w);
 }
 
