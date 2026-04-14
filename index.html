@@ -342,14 +342,17 @@
     border-radius: 12px;
   }
   .topbar-copy {
-    width: min(720px, 100%);
+    width: min(1280px, 100%);
     text-align: center;
     padding: 6px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
   }
   .topbar h1 {
     font-size: 28px;
     line-height: 1.05;
-    margin-bottom: 6px;
+    margin: 0;
     letter-spacing: -0.03em;
     color: #f8fafc;
   }
@@ -358,6 +361,31 @@
     font-size: 13px;
     line-height: 1.5;
     color: #94a3b8;
+  }
+  .topbar-metrics {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .topbar-stat {
+    background: rgba(15,23,42,0.72);
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: left;
+    min-width: 0;
+  }
+  .topbar-stat .stat-label {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .topbar-stat .stat-value {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+  .topbar-stat .total-badge {
+    margin-top: 4px;
   }
   .app-grid {
     min-height: 0;
@@ -745,6 +773,9 @@
     display: none;
   }
   @media (max-width: 1400px) {
+    .topbar-metrics {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
     .app-grid {
       grid-template-columns: 280px minmax(0, 1fr);
       grid-template-areas:
@@ -759,6 +790,9 @@
     }
   }
   @media (max-width: 1180px) {
+    .topbar-metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     body {
       height: auto;
       overflow: auto;
@@ -781,8 +815,36 @@
 <div class="app-shell">
   <header class="topbar">
     <div class="topbar-copy">
-      <h1>Portfolio Backtest</h1>
-      <p class="subtitle">Total return with dividends reinvested &middot; $100K starting portfolio &middot; Monthly data</p>
+      <div>
+        <h1>Portfolio Backtest</h1>
+        <p class="subtitle">Total return with dividends reinvested &middot; $100K starting portfolio &middot; Monthly data</p>
+      </div>
+      <div class="topbar-metrics">
+        <div class="topbar-stat">
+          <div class="stat-label">Total Allocated</div>
+          <div id="totalBadge" class="total-badge bad">$0</div>
+        </div>
+        <div class="topbar-stat">
+          <div class="stat-label">Final Value</div>
+          <div class="stat-value green" id="statValue">&mdash;</div>
+        </div>
+        <div class="topbar-stat">
+          <div class="stat-label">Portfolio CAGR</div>
+          <div class="stat-value blue" id="statCagr">&mdash;</div>
+        </div>
+        <div class="topbar-stat">
+          <div class="stat-label">Max Drawdown</div>
+          <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
+        </div>
+        <div class="topbar-stat">
+          <div class="stat-label">Portfolio Score</div>
+          <div class="stat-value blue" id="statScore">&mdash;</div>
+        </div>
+        <div class="topbar-stat">
+          <div class="stat-label">Total Portfolio Gain</div>
+          <div class="stat-value green" id="statGain">&mdash;</div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -1134,54 +1196,17 @@
         </div>
       </section>
 
-      <div class="right-rail-top">
-        <section class="panel stats-panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-eyebrow">Portfolio State</div>
-              <div class="panel-title">Key Metrics</div>
-            </div>
+      <section class="panel preview-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-eyebrow">Preview</div>
+            <div class="panel-title">Optimal Allocation</div>
           </div>
-          <div class="summary-stats summary-stats-grid">
-            <div class="stat">
-              <div class="stat-label">Total Allocated</div>
-              <div id="totalBadge" class="total-badge bad">$0</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Final Value</div>
-              <div class="stat-value green" id="statValue">&mdash;</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Portfolio CAGR</div>
-              <div class="stat-value blue" id="statCagr">&mdash;</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Max Drawdown</div>
-              <div class="stat-value" id="statDD" style="color:#f87171">&mdash;</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Portfolio Score</div>
-              <div class="stat-value blue" id="statScore">&mdash;</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Total Portfolio Gain</div>
-              <div class="stat-value green" id="statGain">&mdash;</div>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel preview-panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-eyebrow">Preview</div>
-              <div class="panel-title">Optimal Allocation</div>
-            </div>
-          </div>
-          <div class="opt-result">
-            <div id="optResultInner"><div class="opt-empty">Run the optimizer to see results</div></div>
-          </div>
-        </section>
-      </div>
+        </div>
+        <div class="opt-result">
+          <div id="optResultInner"><div class="opt-empty">Run the optimizer to see results</div></div>
+        </div>
+      </section>
 
       <p class="footnote">Monthly total returns including dividends reinvested (Jan 2012&ndash;Mar 2026). Data sourced from Yahoo Finance adjusted close prices. Past performance does not guarantee future results. Not financial advice.</p>
     </aside>
