@@ -271,7 +271,7 @@
   .card-tooltip-name { font-size: 13px; font-weight: 700; color: #f9fafb; }
   .card-tooltip-sub  { font-size: 11px; color: #6b7280; margin-top: 2px; }
   .card:hover .card-tooltip { display: block; }
-  .card:hover { border-color: #374151; transform: translateY(-2px); }
+  .card:hover { border-color: #374151; transform: translateY(-2px); z-index: 12; }
 
   .header-tip {
     position: relative;
@@ -304,29 +304,31 @@
   }
   .topbar {
     display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 10px 14px;
-    background: linear-gradient(180deg, #0b1220 0%, #08101b 100%);
+    justify-content: center;
+    padding: 14px 18px;
+    background:
+      radial-gradient(circle at top, rgba(37,99,235,0.14), transparent 42%),
+      linear-gradient(180deg, #0b1220 0%, #08101b 100%);
     border: 1px solid #182234;
-    border-radius: 10px;
+    border-radius: 12px;
+  }
+  .topbar-copy {
+    width: min(720px, 100%);
+    text-align: center;
+    padding: 6px 0;
   }
   .topbar h1 {
-    font-size: 18px;
-    margin-bottom: 2px;
+    font-size: 28px;
+    line-height: 1.05;
+    margin-bottom: 6px;
+    letter-spacing: -0.03em;
+    color: #f8fafc;
   }
   .topbar .subtitle {
-    margin-bottom: 0;
-    font-size: 12px;
-  }
-  .topbar-note {
-    color: #6b7280;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    white-space: nowrap;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #94a3b8;
   }
   .app-grid {
     min-height: 0;
@@ -387,6 +389,9 @@
     gap: 12px;
     margin-bottom: 10px;
   }
+  .panel-head-help {
+    justify-content: space-between;
+  }
   .panel-head-spread {
     justify-content: space-between;
   }
@@ -402,6 +407,43 @@
     color: #e5e7eb;
     font-size: 13px;
     font-weight: 700;
+  }
+  .help-tip {
+    position: relative;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid #334155;
+    background: #111827;
+    color: #93c5fd;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: help;
+  }
+  .help-tip-popup {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 280px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #cbd5e1;
+    font-size: 11px;
+    line-height: 1.45;
+    text-align: left;
+    z-index: 20;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.45);
+    white-space: normal;
+  }
+  .help-tip:hover .help-tip-popup {
+    display: block;
   }
   .controls,
   .opt-panel,
@@ -676,21 +718,23 @@
 <body>
 <div class="app-shell">
   <header class="topbar">
-    <div>
+    <div class="topbar-copy">
       <h1>Portfolio Backtest</h1>
       <p class="subtitle">Total return with dividends reinvested &middot; $100K starting portfolio &middot; Monthly data</p>
     </div>
-    <div class="topbar-note">Desktop workspace layout for fixed-height use</div>
   </header>
 
   <div class="app-grid">
     <aside class="left-rail">
       <div class="panel controls-panel">
-        <div class="panel-head">
+        <div class="panel-head panel-head-help">
           <div>
             <div class="panel-eyebrow">Backtest Controls</div>
             <div class="panel-title">Portfolio Inputs</div>
           </div>
+          <span class="help-tip" aria-label="Portfolio Inputs help">?
+            <span class="help-tip-popup">Set the main backtest start month and year. This controls the evaluation period used by the primary chart, metrics, and tables. Use Reset to Equal Weights to restore equal percentage weights across the currently selected ETF universe.</span>
+          </span>
         </div>
         <div class="controls">
           <div class="controls-top">
@@ -726,21 +770,27 @@
       </div>
 
       <div class="panel selector-panel">
-        <div class="panel-head">
+        <div class="panel-head panel-head-help">
           <div>
             <div class="panel-eyebrow">Universe</div>
             <div class="panel-title">ETF Selection</div>
           </div>
+          <span class="help-tip" aria-label="ETF Selection help">?
+            <span class="help-tip-popup">Click ETF cards to include or exclude them from the active universe. At least 2 ETFs must remain selected. Any selection change resets the portfolio to equal weights across the selected ETFs.</span>
+          </span>
         </div>
         <div class="cards" id="cards"></div>
       </div>
 
       <div class="panel control-stack">
-        <div class="panel-head">
+        <div class="panel-head panel-head-help">
           <div>
             <div class="panel-eyebrow">Optimizer</div>
             <div class="panel-title">Main Run Controls</div>
           </div>
+          <span class="help-tip" aria-label="Main Run Controls help">?
+            <span class="help-tip-popup">Runs the main optimizer on the currently selected ETF universe. Configure the optimizer start date, optimization window, risk slider, max allocation cap, min allocation floor, and optional max drawdown filter. The optimizer scores portfolios using CAGR divided by Max Drawdown raised to the current risk weight.</span>
+          </span>
         </div>
         <div class="opt-panel compact-panel">
           <div class="opt-desc">Maximizes CAGR / MaxDrawdown^w across selected ETFs using the active start date and optional optimization subwindow.</div>
@@ -827,11 +877,14 @@
       </div>
 
       <div class="panel control-stack">
-        <div class="panel-head">
+        <div class="panel-head panel-head-help">
           <div>
             <div class="panel-eyebrow">Rolling</div>
             <div class="panel-title">Window Analysis</div>
           </div>
+          <span class="help-tip" aria-label="Window Analysis help">?
+            <span class="help-tip-popup">Runs the same optimizer logic across 10 rolling 5-year windows from 2012–16 through 2021–25 using the currently selected ETF universe. Results include average allocation, allocation stability, consistency, window charts, and the full rolling results table.</span>
+          </span>
         </div>
         <div class="opt-panel compact-panel">
           <div class="opt-desc">Runs the optimizer on 10 rolling 5-year windows across the embedded dataset using the selected ETF universe.</div>
