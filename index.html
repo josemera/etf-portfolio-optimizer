@@ -108,20 +108,26 @@
   .toggle-groups { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   .toggle-group {
     display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:4px;
+  }
+  .toggle-group-label {
+    color:#94a3b8;
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:0 2px;
+  }
+  .toggle-group-controls {
+    display:flex;
     align-items:center;
     gap:6px;
     background:#0f172a;
     border:1px solid #1f2937;
     border-radius:10px;
     padding:4px;
-  }
-  .toggle-group-label {
-    color:#6b7280;
-    font-size:10px;
-    font-weight:700;
-    letter-spacing:.05em;
-    text-transform:uppercase;
-    padding:0 6px;
   }
   .toggle-btn {
     padding:6px 12px;
@@ -146,6 +152,14 @@
   .chart-wrap { background: #111827; border-radius: 12px; padding: 16px; border: 1px solid #1f2937; margin-bottom: 20px; }
   .table-wrap { background: #111827; border-radius: 12px; border: 1px solid #1f2937; overflow: visible; margin-bottom: 20px; }
   .table-title { padding: 12px 16px; border-bottom: 1px solid #1f2937; font-size: 13px; color: #d1d5db; font-weight: 700; }
+  .table-title-note {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
   .scroll { overflow-x: auto; overflow-y: visible; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th { padding: 8px 12px; color: #6b7280; font-size: 12px; border-bottom: 1px solid #1f2937; font-weight: 600; white-space: nowrap; }
@@ -1353,17 +1367,21 @@
         <div class="data-tab" id="dataTabYearly">
           <div class="table-wrap table-fill">
             <div class="table-toolbar">
-              <div class="table-title" id="ybyTitle">Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(year-end for full years; latest closed month for current partial year)</span></div>
+              <div class="table-title" id="ybyTitle">Year-by-Year Portfolio Values<span class="table-title-note">(year-end for full years; latest closed month for current partial year)</span></div>
               <div class="toggle-groups">
                 <div class="toggle-group">
                   <span class="toggle-group-label">Display</span>
-                  <button class="toggle-btn active" id="ybyValueDollar" onclick="switchYbyValueMode('dollar',this)">$</button>
-                  <button class="toggle-btn" id="ybyValuePercent" onclick="switchYbyValueMode('percent',this)">%</button>
+                  <div class="toggle-group-controls">
+                    <button class="toggle-btn active" id="ybyValueDollar" onclick="switchYbyValueMode('dollar',this)">$</button>
+                    <button class="toggle-btn" id="ybyValuePercent" onclick="switchYbyValueMode('percent',this)">%</button>
+                  </div>
                 </div>
                 <div class="toggle-group">
                   <span class="toggle-group-label">Measure</span>
-                  <button class="toggle-btn active" id="ybyScopeCumulative" onclick="switchYbyScopeMode('cumulative',this)">Cumulative</button>
-                  <button class="toggle-btn" id="ybyScopeYearly" onclick="switchYbyScopeMode('yearly',this)">Yearly</button>
+                  <div class="toggle-group-controls">
+                    <button class="toggle-btn active" id="ybyScopeCumulative" onclick="switchYbyScopeMode('cumulative',this)">Cumulative</button>
+                    <button class="toggle-btn" id="ybyScopeYearly" onclick="switchYbyScopeMode('yearly',this)">Yearly</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1376,17 +1394,7 @@
         <div class="data-tab" id="dataTabDrawdown">
           <div class="table-wrap table-fill">
             <div class="table-toolbar">
-              <div class="table-title">Calendar-Year Max Drawdown <span style="color:#6b7280;font-weight:400;font-size:11px">(peak-to-trough within each displayed year; summary table shows full-period max drawdown)</span></div>
-              <div class="toggle-groups">
-                <div class="toggle-group">
-                  <span class="toggle-group-label">Display</span>
-                  <button class="toggle-btn active passive" type="button">%</button>
-                </div>
-                <div class="toggle-group">
-                  <span class="toggle-group-label">Measure</span>
-                  <button class="toggle-btn active passive" type="button">Yearly</button>
-                </div>
-              </div>
+              <div class="table-title">Calendar-Year Max Drawdown<span class="table-title-note">(peak-to-trough within each displayed year; summary table shows full-period max drawdown)</span></div>
             </div>
             <div class="scroll scroll-fill"><table>
               <thead id="ybyDDHead"></thead><tbody id="ybyDDBody"></tbody>
@@ -2187,7 +2195,7 @@ function renderYearByYearTable(startIdx, startYear, investedTickers, alloc){
   const ybyModeLabel = ybyScopeMode === "cumulative"
     ? (ybyValueMode === "dollar" ? "Period-end cumulative $" : "Cumulative % gain from selected start date")
     : (ybyValueMode === "dollar" ? "Calendar-year / partial-year $ change" : "Calendar-year / partial-year % return");
-  document.getElementById("ybyTitle").innerHTML = `Year-by-Year Portfolio Values <span style="color:#6b7280;font-weight:400;font-size:11px">(${ybyModeLabel})</span>`;
+  document.getElementById("ybyTitle").innerHTML = `Year-by-Year Portfolio Values<span class="table-title-note">(${ybyModeLabel})</span>`;
   document.getElementById("ybyHead").innerHTML = `<tr><th class="left">Year</th>${investedTickers.map(t => tickerHeaderCell(t)).join("")}<th class="right">Total</th></tr>`;
   const yb = document.getElementById("ybyBody"); yb.innerHTML = "";
   const startVals = {}; investedTickers.forEach(t => { startVals[t] = alloc[t]||0; });
