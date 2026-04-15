@@ -145,8 +145,8 @@
 
   .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
   .control-stack .slider-row {
-    margin-bottom: 10px;
-    padding: 12px 14px;
+    margin-bottom: 8px;
+    padding: 10px 12px;
     border: 1px solid #1f2937;
     border-radius: 10px;
     background: rgba(15, 23, 42, 0.65);
@@ -202,7 +202,7 @@
     border-radius: 6px;
     padding: 6px 10px;
     text-align: center;
-    margin-top: 10px;
+    margin-top: 8px;
   }
 
   .run-btn { padding: 10px 28px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
@@ -236,9 +236,9 @@
     min-height: 360px;
   }
   .optimizer-panel .frontier-wrap {
-    flex: 1;
-    height: auto;
-    min-height: 500px;
+    flex: 0 0 auto;
+    height: 420px;
+    min-height: 420px;
   }
   #frontierChart {
     flex: 1;
@@ -441,7 +441,7 @@
   }
   .left-rail, .right-rail {
     overflow: auto;
-    padding-right: 2px;
+    padding-right: 8px;
   }
   .right-rail-top {
     display: grid;
@@ -456,12 +456,13 @@
     min-height: 0;
   }
   .left-rail > .panel,
-  .right-rail > .panel {
+  .right-rail > .panel,
+  .center-workspace > .panel {
     flex: 0 0 auto;
   }
   .center-workspace {
     overflow: auto;
-    padding-right: 2px;
+    padding-right: 10px;
   }
   .panel {
     background: #0b1220;
@@ -597,17 +598,43 @@
     align-items: center;
     flex-wrap: nowrap;
     gap: 10px;
-    margin: 4px 0 8px;
-    padding: 14px;
-    border: 1px solid #1f2937;
-    border-radius: 10px;
-    background: rgba(15, 23, 42, 0.78);
+    margin: 2px 0 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
   }
   .run-row .run-btn,
   .run-row .clear-btn {
     flex: 1 1 0;
     min-width: 0;
     text-align: center;
+  }
+  #analysisPaneOptimizer .run-row {
+    justify-content: flex-end;
+  }
+  #analysisPaneOptimizer .run-row .run-btn,
+  #analysisPaneOptimizer .run-row .clear-btn {
+    flex: 0 0 auto;
+  }
+  #analysisPaneOptimizer .run-row .run-btn {
+    padding-inline: 22px;
+  }
+  #analysisPaneOptimizer .run-row .clear-btn {
+    padding-inline: 14px;
+  }
+  #analysisPaneRolling .run-row {
+    justify-content: flex-end;
+  }
+  #analysisPaneRolling .run-row .run-btn,
+  #analysisPaneRolling .run-row .clear-btn {
+    flex: 0 0 auto;
+  }
+  #analysisPaneRolling .run-row .run-btn {
+    padding-inline: 22px;
+  }
+  #analysisPaneRolling .run-row .clear-btn {
+    padding-inline: 14px;
   }
   .numeric-control {
     display: flex;
@@ -634,13 +661,77 @@
   .main-chart-panel {
     min-height: 420px;
   }
+  .analysis-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .analysis-pane {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .analysis-pane.active {
+    display: flex;
+  }
+  .analysis-tabs {
+    margin-bottom: 0;
+  }
+  .analysis-tab-copy {
+    color: #6b7280;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .analysis-control-panel {
+    flex: 0 0 auto;
+  }
+  .optimizer-controls-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.55fr);
+    gap: 10px 12px;
+    align-items: stretch;
+  }
+  .optimizer-controls-grid .span-2,
+  .optimizer-controls-grid .opt-desc {
+    grid-column: 1 / -1;
+  }
+  .optimizer-controls-grid .slider-left {
+    grid-column: 1;
+  }
+  .optimizer-controls-grid .config-right {
+    grid-column: 2;
+  }
+  .optimizer-controls-grid .slider-row,
+  .optimizer-controls-grid .run-row,
+  .optimizer-controls-grid .opt-status,
+  .optimizer-controls-grid .progress-bar {
+    margin-bottom: 0;
+  }
+  .rolling-controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    align-items: stretch;
+  }
+  .rolling-controls-grid .opt-desc,
+  .rolling-controls-grid .run-row,
+  .rolling-controls-grid .opt-status,
+  .rolling-controls-grid .progress-bar {
+    grid-column: 1 / -1;
+  }
+  .rolling-controls-grid .slider-row,
+  .rolling-controls-grid .run-row,
+  .rolling-controls-grid .opt-status,
+  .rolling-controls-grid .progress-bar {
+    margin-bottom: 0;
+  }
   .chart-panel {
     display: flex;
     flex-direction: column;
   }
   .optimizer-panel {
-    flex: 1;
-    min-height: 560px;
+    flex: 0 0 auto;
+    min-height: 480px;
   }
   .chart-stage {
     flex: 1;
@@ -648,6 +739,10 @@
   }
   .rolling-panel {
     flex: 1;
+  }
+  .rolling-panel:not(.collapsed) {
+    flex: 0 0 auto;
+    min-height: 500px;
   }
   .rolling-panel.collapsed {
     flex: 0 0 auto;
@@ -693,6 +788,12 @@
     font-size: 12px;
     font-weight: 600;
     margin-bottom: 8px;
+  }
+  .selectable-row {
+    cursor: pointer;
+  }
+  .selectable-row.is-selected td {
+    background: #1a2433;
   }
   .stats-panel .summary-stats-grid {
     margin-left: 0;
@@ -790,6 +891,16 @@
     }
   }
   @media (max-width: 1180px) {
+    .optimizer-controls-grid {
+      grid-template-columns: 1fr;
+    }
+    .optimizer-controls-grid .slider-left,
+    .optimizer-controls-grid .config-right {
+      grid-column: auto;
+    }
+    .rolling-controls-grid {
+      grid-template-columns: 1fr;
+    }
     .topbar-metrics {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -906,156 +1017,6 @@
         <div class="cards" id="cards"></div>
       </div>
 
-      <div class="panel control-stack">
-        <div class="panel-head panel-head-help">
-          <div>
-            <div class="panel-eyebrow">Optimizer</div>
-            <div class="panel-title">Main Run Controls</div>
-          </div>
-          <span class="help-tip" aria-label="Main Run Controls help">?
-            <span class="help-tip-popup">Runs the main optimizer on the currently selected ETF universe. Configure the optimizer start date, optimization window, risk slider, max allocation cap, min allocation floor, and optional max drawdown filter. The optimizer scores portfolios using CAGR divided by Max Drawdown raised to the current risk weight.</span>
-          </span>
-        </div>
-        <div class="opt-panel compact-panel">
-          <div class="opt-desc">Maximizes CAGR / MaxDrawdown^w across selected ETFs using the active start date and optional optimization subwindow.</div>
-          <div class="slider-row">
-            <div class="slider-label-row">
-              <span class="slider-label left-lbl">&uarr; Max Return</span>
-              <span class="slider-label right-lbl">&darr; Min Drawdown</span>
-            </div>
-            <div class="slider-track-row">
-              <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
-            </div>
-            <div class="slider-value-row">
-              <span class="slider-val" id="sliderVal">Balanced (1.0)</span>
-            </div>
-          </div>
-          <div class="slider-row">
-            <div class="slider-label-row">
-              <span class="slider-label left-lbl">&#9878; More Balanced</span>
-              <span class="slider-label right-lbl">No Limit</span>
-            </div>
-            <div class="slider-track-row">
-              <input type="range" id="maxTickerSlider" min="10" max="100" step="5" value="100" oninput="onMaxTickerChange()">
-            </div>
-            <div class="slider-value-row">
-              <span class="slider-val" id="maxTickerVal">No Limit</span>
-            </div>
-          </div>
-          <div class="slider-row">
-            <div class="slider-label-row">
-              <span class="slider-label left-lbl">&#9878; Allow Zeroes</span>
-              <span class="slider-label right-lbl">Force Inclusion</span>
-            </div>
-            <div class="slider-track-row">
-              <input type="range" id="minTickerSlider" min="0" max="20" step="5" value="0" oninput="onMinTickerChange()">
-            </div>
-            <div class="slider-value-row">
-              <span class="slider-val" id="minTickerVal">Min 0%</span>
-            </div>
-          </div>
-          <div class="slider-row">
-            <label class="optimizer-control">
-              <span>Optimizer Start</span>
-              <div class="start-date-row">
-                <select id="optStartMonth" onchange="onOptStartDateChange()">
-                  <option value="1">Jan</option><option value="2">Feb</option>
-                  <option value="3">Mar</option><option value="4">Apr</option>
-                  <option value="5">May</option><option value="6">Jun</option>
-                  <option value="7">Jul</option><option value="8">Aug</option>
-                  <option value="9">Sep</option><option value="10">Oct</option>
-                  <option value="11">Nov</option><option value="12">Dec</option>
-                </select>
-                <select id="optStartYear" onchange="onOptStartDateChange()">
-                  <option value="2012">2012</option><option value="2013">2013</option>
-                  <option value="2014">2014</option><option value="2015">2015</option>
-                  <option value="2016">2016</option><option value="2017">2017</option>
-                  <option value="2018">2018</option><option value="2019">2019</option>
-                  <option value="2020">2020</option><option value="2021">2021</option>
-                  <option value="2022">2022</option><option value="2023">2023</option>
-                  <option value="2024">2024</option><option value="2025">2025</option>
-                  <option value="2026">2026</option>
-                </select>
-              </div>
-            </label>
-          </div>
-          <div class="slider-row">
-            <label class="optimizer-control" for="optWindow">
-              <span>Optimization Window</span>
-              <select id="optWindow" onchange="onOptWindowChange()">
-                <option value="full">Full Period</option>
-                <option value="12">12 months</option>
-                <option value="24">24 months</option>
-                <option value="36">36 months</option>
-                <option value="60">60 months</option>
-                <option value="84">84 months</option>
-                <option value="120">120 months</option>
-              </select>
-            </label>
-            <span class="optimizer-subnote" id="optWindowResolved">Optimizing on full period.</span>
-          </div>
-          <div class="slider-row">
-            <label class="optimizer-control" for="maxDDFilter">
-              <span>Max DD filter</span>
-              <select id="maxDDFilter">
-                <option value="">none</option>
-                <option value="20">20%</option>
-                <option value="25">25%</option>
-                <option value="30">30%</option>
-                <option value="35">35%</option>
-                <option value="40">40%</option>
-                <option value="45">45%</option>
-                <option value="50">50%</option>
-              </select>
-            </label>
-          </div>
-          <div class="run-row">
-            <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
-            <button class="clear-btn" type="button" onclick="clearOptimizerRun()">Clear</button>
-          </div>
-          <div class="opt-status" id="optStatus">Set risk preference above, then click Run Optimizer.</div>
-          <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-        </div>
-      </div>
-
-      <div class="panel control-stack">
-        <div class="panel-head panel-head-help">
-          <div>
-            <div class="panel-eyebrow">Rolling</div>
-            <div class="panel-title">Window Analysis</div>
-          </div>
-          <span class="help-tip" aria-label="Window Analysis help">?
-            <span class="help-tip-popup">Runs the same optimizer logic across 10 rolling 5-year windows from 2012–16 through 2021–25 using the currently selected ETF universe. Results include average allocation, allocation stability, consistency, window charts, and the full rolling results table.</span>
-          </span>
-        </div>
-        <div class="opt-panel compact-panel">
-          <div class="opt-desc">Runs the optimizer on 10 rolling 5-year windows across the embedded dataset using the selected ETF universe.</div>
-          <div class="slider-row">
-            <div class="slider-label-row">
-              <span class="slider-label left-lbl">&uarr; Max Return</span>
-              <span class="slider-label right-lbl">&darr; Min Drawdown</span>
-            </div>
-            <div class="slider-track-row">
-              <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
-            </div>
-            <div class="slider-value-row">
-              <span class="slider-val" id="rwSliderVal">Balanced (1.0)</span>
-            </div>
-          </div>
-          <div class="slider-row">
-            <span class="slider-label left-lbl">&#9878; More Balanced</span>
-            <input type="range" id="rwMaxTickerSlider" min="10" max="100" step="5" value="100" oninput="onRwMaxTickerChange()">
-            <span class="slider-label right-lbl">No Limit</span>
-            <span class="slider-val" id="rwMaxTickerVal">No Limit</span>
-          </div>
-          <div class="run-row">
-            <button class="run-btn" id="rwRunBtn" onclick="runRollingOptimizer()">Run Rolling Analysis</button>
-            <button class="clear-btn" type="button" onclick="clearRollingAnalysis()">Clear</button>
-          </div>
-          <div class="opt-status" id="rwStatus">10 windows &times; 60-month optimizer each.</div>
-          <div class="progress-bar" id="rwProgressBar"><div class="progress-fill" id="rwProgressFill" style="width:0%"></div></div>
-        </div>
-      </div>
     </aside>
 
     <main class="center-workspace">
@@ -1074,40 +1035,215 @@
         <div class="chart-wrap chart-stage"><canvas id="mainChart" height="340"></canvas></div>
       </section>
 
-      <section class="panel chart-panel optimizer-panel" id="optimizerPanel">
-        <div class="panel-head">
+      <section class="panel analysis-workspace">
+        <div class="panel-head panel-head-spread">
           <div>
-            <div class="panel-eyebrow">Optimizer Output</div>
-            <div class="panel-title">Efficient Frontier</div>
+            <div class="panel-eyebrow">Analysis Workspace</div>
+            <div class="panel-title">Optimizer Tools</div>
+            <div class="analysis-tab-copy">Use the tabbed workspace below to run either the single-period optimizer or the rolling-window analysis.</div>
+          </div>
+          <div class="tabs analysis-tabs">
+            <button class="tab active" id="analysisTabOptimizer" onclick="switchAnalysisTab('optimizer',this)">Optimizer</button>
+            <button class="tab" id="analysisTabRolling" onclick="switchAnalysisTab('rolling',this)">Rolling Window</button>
           </div>
         </div>
-        <div class="frontier-wrap">
-          <canvas id="frontierChart" height="300" style="cursor:crosshair"></canvas>
-          <div class="frontier-hint">Click any dot to preview that allocation &nbsp;&middot;&nbsp; &#9733; = hill-climb optimum</div>
-        </div>
-      </section>
 
-      <section class="panel chart-panel rolling-panel collapsed" id="rollingPanel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-eyebrow">Rolling Output</div>
-            <div class="panel-title">Window Charts</div>
-          </div>
-        </div>
-        <div id="rwResults" class="rolling-results" style="display:none">
-          <div class="insight-grid" id="rwInsights"></div>
-          <div class="rw-grid">
-            <div class="chart-wrap chart-wrap-compact">
-              <div class="subpanel-title">Optimal Allocation by Window (%)</div>
-              <canvas id="rwAllocChart" height="260"></canvas>
+        <div class="analysis-pane active" id="analysisPaneOptimizer">
+          <section class="panel control-stack analysis-control-panel">
+            <div class="panel-head panel-head-help">
+              <div>
+                <div class="panel-eyebrow">Optimizer</div>
+                <div class="panel-title">Main Run Controls</div>
+              </div>
+              <span class="help-tip" aria-label="Main Run Controls help">?
+                <span class="help-tip-popup">Runs the main optimizer on the currently selected ETF universe. Configure the optimizer start date, optimization window, risk slider, max allocation cap, min allocation floor, and optional max drawdown filter. The optimizer scores portfolios using CAGR divided by Max Drawdown raised to the current risk weight.</span>
+              </span>
             </div>
-            <div class="chart-wrap chart-wrap-compact">
-              <div class="subpanel-title">CAGR vs Max Drawdown by Window</div>
-              <canvas id="rwPerfChart" height="260"></canvas>
+            <div class="opt-panel compact-panel optimizer-controls-grid">
+              <div class="opt-desc">Maximizes CAGR / MaxDrawdown^w across selected ETFs using the active start date and optional optimization subwindow.</div>
+              <div class="slider-row slider-left">
+                <div class="slider-label-row">
+                  <span class="slider-label left-lbl">&uarr; Max Return</span>
+                  <span class="slider-label right-lbl">&darr; Min Drawdown</span>
+                </div>
+                <div class="slider-track-row">
+                  <input type="range" id="riskSlider" min="0" max="2" step="0.1" value="1" oninput="onSliderChange()">
+                </div>
+                <div class="slider-value-row">
+                  <span class="slider-val" id="sliderVal">Balanced (1.0)</span>
+                </div>
+              </div>
+              <div class="slider-row config-right">
+                <label class="optimizer-control">
+                  <span>Optimizer Start</span>
+                  <div class="start-date-row">
+                    <select id="optStartMonth" onchange="onOptStartDateChange()">
+                      <option value="1">Jan</option><option value="2">Feb</option>
+                      <option value="3">Mar</option><option value="4">Apr</option>
+                      <option value="5">May</option><option value="6">Jun</option>
+                      <option value="7">Jul</option><option value="8">Aug</option>
+                      <option value="9">Sep</option><option value="10">Oct</option>
+                      <option value="11">Nov</option><option value="12">Dec</option>
+                    </select>
+                    <select id="optStartYear" onchange="onOptStartDateChange()">
+                      <option value="2012">2012</option><option value="2013">2013</option>
+                      <option value="2014">2014</option><option value="2015">2015</option>
+                      <option value="2016">2016</option><option value="2017">2017</option>
+                      <option value="2018">2018</option><option value="2019">2019</option>
+                      <option value="2020">2020</option><option value="2021">2021</option>
+                      <option value="2022">2022</option><option value="2023">2023</option>
+                      <option value="2024">2024</option><option value="2025">2025</option>
+                      <option value="2026">2026</option>
+                    </select>
+                  </div>
+                </label>
+              </div>
+              <div class="slider-row slider-left">
+                <div class="slider-label-row">
+                  <span class="slider-label left-lbl">&#9878; More Balanced</span>
+                  <span class="slider-label right-lbl">No Limit</span>
+                </div>
+                <div class="slider-track-row">
+                  <input type="range" id="maxTickerSlider" min="10" max="100" step="5" value="100" oninput="onMaxTickerChange()">
+                </div>
+                <div class="slider-value-row">
+                  <span class="slider-val" id="maxTickerVal">No Limit</span>
+                </div>
+              </div>
+              <div class="slider-row config-right">
+                <label class="optimizer-control" for="optWindow">
+                  <span>Optimization Window</span>
+                  <select id="optWindow" onchange="onOptWindowChange()">
+                    <option value="full">Full Period</option>
+                    <option value="12">12 months</option>
+                    <option value="24">24 months</option>
+                    <option value="36">36 months</option>
+                    <option value="60">60 months</option>
+                    <option value="84">84 months</option>
+                    <option value="120">120 months</option>
+                  </select>
+                </label>
+                <span class="optimizer-subnote" id="optWindowResolved">Optimizing on full period.</span>
+              </div>
+              <div class="slider-row slider-left">
+                <div class="slider-label-row">
+                  <span class="slider-label left-lbl">&#9878; Allow Zeroes</span>
+                  <span class="slider-label right-lbl">Force Inclusion</span>
+                </div>
+                <div class="slider-track-row">
+                  <input type="range" id="minTickerSlider" min="0" max="20" step="5" value="0" oninput="onMinTickerChange()">
+                </div>
+                <div class="slider-value-row">
+                  <span class="slider-val" id="minTickerVal">Min 0%</span>
+                </div>
+              </div>
+              <div class="slider-row config-right">
+                <label class="optimizer-control" for="maxDDFilter">
+                  <span>Max DD filter</span>
+                  <select id="maxDDFilter">
+                    <option value="">none</option>
+                    <option value="20">20%</option>
+                    <option value="25">25%</option>
+                    <option value="30">30%</option>
+                    <option value="35">35%</option>
+                    <option value="40">40%</option>
+                    <option value="45">45%</option>
+                    <option value="50">50%</option>
+                  </select>
+                </label>
+              </div>
+              <div class="run-row span-2">
+                <button class="run-btn" id="runBtn" onclick="runOptimizer()">Run Optimizer</button>
+                <button class="clear-btn" type="button" onclick="clearOptimizerRun()">Clear</button>
+              </div>
+              <div class="opt-status span-2" id="optStatus">Set risk preference above, then click Run Optimizer.</div>
+              <div class="progress-bar span-2" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
             </div>
-          </div>
+          </section>
+
+          <section class="panel chart-panel optimizer-panel" id="optimizerPanel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-eyebrow">Optimizer Output</div>
+                <div class="panel-title">Efficient Frontier</div>
+              </div>
+            </div>
+            <div class="frontier-wrap">
+              <canvas id="frontierChart" height="300" style="cursor:crosshair"></canvas>
+              <div class="frontier-hint">Click any dot to preview that allocation &nbsp;&middot;&nbsp; &#9733; = hill-climb optimum</div>
+            </div>
+          </section>
         </div>
-        <div id="rwEmptyState" class="opt-empty">Run the rolling analysis to populate this workspace.</div>
+
+        <div class="analysis-pane rolling-pane" id="analysisPaneRolling">
+          <section class="panel control-stack analysis-control-panel">
+            <div class="panel-head panel-head-help">
+              <div>
+                <div class="panel-eyebrow">Rolling</div>
+                <div class="panel-title">Window Analysis</div>
+              </div>
+              <span class="help-tip" aria-label="Window Analysis help">?
+                <span class="help-tip-popup">Runs the same optimizer logic across 10 rolling 5-year windows from 2012–16 through 2021–25 using the currently selected ETF universe. Results include average allocation, allocation stability, consistency, window charts, and the full rolling results table.</span>
+              </span>
+            </div>
+            <div class="opt-panel compact-panel rolling-controls-grid">
+              <div class="opt-desc">Runs the optimizer on 10 rolling 5-year windows across the embedded dataset using the selected ETF universe.</div>
+              <div class="slider-row">
+                <div class="slider-label-row">
+                  <span class="slider-label left-lbl">&uarr; Max Return</span>
+                  <span class="slider-label right-lbl">&darr; Min Drawdown</span>
+                </div>
+                <div class="slider-track-row">
+                  <input type="range" id="rwRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onRwSliderChange()">
+                </div>
+                <div class="slider-value-row">
+                  <span class="slider-val" id="rwSliderVal">Balanced (1.0)</span>
+                </div>
+              </div>
+              <div class="slider-row">
+                <div class="slider-label-row">
+                  <span class="slider-label left-lbl">&#9878; More Balanced</span>
+                  <span class="slider-label right-lbl">No Limit</span>
+                </div>
+                <div class="slider-track-row">
+                  <input type="range" id="rwMaxTickerSlider" min="10" max="100" step="5" value="100" oninput="onRwMaxTickerChange()">
+                </div>
+                <div class="slider-value-row">
+                  <span class="slider-val" id="rwMaxTickerVal">No Limit</span>
+                </div>
+              </div>
+              <div class="run-row">
+                <button class="run-btn" id="rwRunBtn" onclick="runRollingOptimizer()">Run Rolling Analysis</button>
+                <button class="clear-btn" type="button" onclick="clearRollingAnalysis()">Clear</button>
+              </div>
+              <div class="opt-status" id="rwStatus">10 windows &times; 60-month optimizer each.</div>
+              <div class="progress-bar" id="rwProgressBar"><div class="progress-fill" id="rwProgressFill" style="width:0%"></div></div>
+            </div>
+          </section>
+
+          <section class="panel chart-panel rolling-panel collapsed" id="rollingPanel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-eyebrow">Rolling Output</div>
+                <div class="panel-title">Window Charts</div>
+              </div>
+            </div>
+            <div id="rwResults" class="rolling-results" style="display:none">
+              <div class="insight-grid" id="rwInsights"></div>
+              <div class="rw-grid">
+                <div class="chart-wrap chart-wrap-compact">
+                  <div class="subpanel-title">Optimal Allocation by Window (%)</div>
+                  <canvas id="rwAllocChart" height="260"></canvas>
+                </div>
+                <div class="chart-wrap chart-wrap-compact">
+                  <div class="subpanel-title">CAGR vs Max Drawdown by Window</div>
+                  <canvas id="rwPerfChart" height="260"></canvas>
+                </div>
+              </div>
+            </div>
+            <div id="rwEmptyState" class="opt-empty">Run the rolling analysis to populate this workspace.</div>
+          </section>
+        </div>
       </section>
     </main>
 
@@ -1121,10 +1257,10 @@
             <div class="panel-title">Portfolio Data</div>
           </div>
           <div class="tabs data-tabs">
-            <button class="tab active" onclick="switchDataTab('summary',this)">Summary</button>
-            <button class="tab" onclick="switchDataTab('yearly',this)">Yearly</button>
-            <button class="tab" onclick="switchDataTab('drawdown',this)">Drawdown</button>
-            <button class="tab" onclick="switchDataTab('rolling',this)">Rolling</button>
+            <button class="tab active" id="dataTabBtnSummary" onclick="switchDataTab('summary',this)">Summary</button>
+            <button class="tab" id="dataTabBtnYearly" onclick="switchDataTab('yearly',this)">Yearly</button>
+            <button class="tab" id="dataTabBtnDrawdown" onclick="switchDataTab('drawdown',this)">Drawdown</button>
+            <button class="tab" id="dataTabBtnRolling" onclick="switchDataTab('rolling',this)" style="display:none">Rolling</button>
           </div>
         </div>
 
@@ -1199,8 +1335,8 @@
       <section class="panel preview-panel">
         <div class="panel-head">
           <div>
-            <div class="panel-eyebrow">Preview</div>
-            <div class="panel-title">Optimal Allocation</div>
+            <div class="panel-eyebrow" id="analysisPreviewEyebrow">Optimizer</div>
+            <div class="panel-title" id="analysisPreviewTitle">Analysis Preview</div>
           </div>
         </div>
         <div class="opt-result">
@@ -1449,14 +1585,18 @@ const TOTAL_PORTFOLIO = 100000;
 let selectedTickers = new Set(TICKERS);
 let weights       = buildEqualWeights(TICKERS);
 let currentTab    = "growth";
+let activeAnalysisTab = "optimizer";
 let ybyValueMode  = "dollar";
 let ybyScopeMode  = "cumulative";
 let mainChart     = null;
 let frontierChart = null;
 let frontierData  = null;
+let optimizerPreviewPoint = null;
 let previewAlloc  = null;
 let rwAllocChart  = null;
 let rwPerfChart   = null;
+let rollingResultsData = null;
+let rollingPreviewState = null;
 let optimizerCleared = false;
 let rollingCleared   = false;
 let portfolioScoreBasis = null;
@@ -1643,13 +1783,110 @@ function getOptimizerWindowLabel(startIdx){
 function refreshOptimizerWindowResolved(){
   document.getElementById("optWindowResolved").textContent = getOptimizerWindowLabel(getOptimizerStartIdx());
 }
+function setAnalysisPreviewHeading(eyebrow, title){
+  const eyebrowEl = document.getElementById("analysisPreviewEyebrow");
+  const titleEl = document.getElementById("analysisPreviewTitle");
+  if(eyebrowEl) eyebrowEl.textContent = eyebrow;
+  if(titleEl) titleEl.textContent = title;
+}
+function buildAllocationRows(alloc, tickers){
+  const maxAlloc = Math.max(...tickers.map(t => alloc[t] || 0), 1);
+  return tickers.map(t => `
+    <div class="opt-alloc-row">
+      <span class="opt-ticker" style="color:${COLORS[t]}">${t}</span>
+      <div class="opt-bar-wrap"><div class="opt-bar" style="width:${((alloc[t] || 0) / maxAlloc * 100).toFixed(1)}%;background:${COLORS[t]}"></div></div>
+      <span class="opt-val">${fmtW(alloc[t] || 0)}</span>
+    </div>`).join("");
+}
+function buildOptimizerPreviewMarkup(pt){
+  const w = +document.getElementById("riskSlider").value;
+  const activeTickers = getSelectedTickers();
+  return `
+    <div style="color:#6b7280;font-size:11px;margin-bottom:12px">${frontierData ? frontierData.windowLabel : getOptimizerWindowLabel(getOptimizerStartIdx())}</div>
+    <div class="opt-metrics">
+      <div class="opt-metric"><div class="opt-metric-label">CAGR</div><div class="opt-metric-val green">${fmtP(pt.cagr)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Max Drawdown</div><div class="opt-metric-val red">-${fmtP(pt.dd)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Score (CAGR/DD^w)</div><div class="opt-metric-val blue">${scoreFunc(pt.cagr, pt.dd, w).toFixed(2)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Total</div><div class="opt-metric-val">${fmtW(activeTickers.reduce((s, t) => s + (pt.alloc[t] || 0), 0))}</div></div>
+    </div>
+    <div style="margin-bottom:4px">${buildAllocationRows(pt.alloc, activeTickers)}</div>
+    <button class="apply-btn" onclick="applyOptimal()">Apply This Allocation \u2191</button>`;
+}
+function buildRollingAveragePreview(results){
+  const tickers = getRollingTickers();
+  const avgAlloc = Object.fromEntries(tickers.map(t => [t, results.reduce((s, r) => s + (r.alloc[t] || 0), 0) / results.length]));
+  const avgCagr = results.reduce((s, r) => s + r.cagr, 0) / results.length;
+  const avgDD = results.reduce((s, r) => s + r.dd, 0) / results.length;
+  const avgScore = results.reduce((s, r) => s + r.score, 0) / results.length;
+  return {
+    kind: "average",
+    label: `Average allocation across ${results.length} rolling windows`,
+    alloc: avgAlloc,
+    cagr: avgCagr,
+    dd: avgDD,
+    score: avgScore,
+    windowCount: results.length,
+  };
+}
+function buildRollingWindowPreview(result){
+  return {
+    kind: "window",
+    label: `Window ${result.label}`,
+    alloc: result.alloc,
+    cagr: result.cagr,
+    dd: result.dd,
+    score: result.score,
+    windowLabel: result.label,
+  };
+}
+function buildRollingPreviewMarkup(preview){
+  const tickers = getRollingTickers();
+  const metaLabel = preview.kind === "average" ? "Average rolling allocation" : "Selected rolling window";
+  const metaValue = preview.kind === "average" ? `${preview.windowCount} windows averaged` : preview.windowLabel;
+  return `
+    <div style="color:#6b7280;font-size:11px;margin-bottom:12px">${preview.label}</div>
+    <div class="opt-metrics">
+      <div class="opt-metric"><div class="opt-metric-label">CAGR</div><div class="opt-metric-val green">${fmtP(preview.cagr)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Max Drawdown</div><div class="opt-metric-val red">-${fmtP(preview.dd)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Score</div><div class="opt-metric-val blue">${preview.score.toFixed(2)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">${metaLabel}</div><div class="opt-metric-val">${metaValue}</div></div>
+    </div>
+    <div style="margin-bottom:4px">${buildAllocationRows(preview.alloc, tickers)}</div>
+    <button class="apply-btn" onclick="applyOptimal()">Apply This Allocation \u2191</button>`;
+}
+function renderPreviewPanel(){
+  const inner = document.getElementById("optResultInner");
+  if(!inner) return;
+  if(activeAnalysisTab === "rolling"){
+    setAnalysisPreviewHeading("Rolling Window", "Analysis Preview");
+    if(rollingPreviewState){
+      previewAlloc = rollingPreviewState.alloc;
+      inner.innerHTML = buildRollingPreviewMarkup(rollingPreviewState);
+    } else {
+      previewAlloc = null;
+      inner.innerHTML = `<div class="opt-empty">Run the rolling analysis to see results</div>`;
+    }
+    return;
+  }
+  setAnalysisPreviewHeading("Optimizer", "Analysis Preview");
+  if(optimizerPreviewPoint){
+    previewAlloc = optimizerPreviewPoint.alloc;
+    inner.innerHTML = buildOptimizerPreviewMarkup(optimizerPreviewPoint);
+  } else {
+    previewAlloc = null;
+    inner.innerHTML = `<div class="opt-empty">Run the optimizer to see results</div>`;
+  }
+}
 function clearOptimizerPreview(message="Run the optimizer to see results"){
   optimizerCleared = true;
   frontierData = null;
+  optimizerPreviewPoint = null;
   previewAlloc = null;
   if(frontierChart){ frontierChart.destroy(); frontierChart = null; }
-  const inner = document.getElementById("optResultInner");
-  if(inner) inner.innerHTML = `<div class="opt-empty">${message}</div>`;
+  if(activeAnalysisTab === "optimizer"){
+    const inner = document.getElementById("optResultInner");
+    if(inner) inner.innerHTML = `<div class="opt-empty">${message}</div>`;
+  }
 }
 function refreshPortfolioScore(){
   const statScore = document.getElementById("statScore");
@@ -1687,6 +1924,8 @@ function clearOptimizerRun(){
 }
 function clearRollingResults(){
   rollingCleared = true;
+  rollingResultsData = null;
+  rollingPreviewState = null;
   if(rwAllocChart){ rwAllocChart.destroy(); rwAllocChart = null; }
   if(rwPerfChart){ rwPerfChart.destroy(); rwPerfChart = null; }
   document.getElementById("rwInsights").innerHTML = "";
@@ -1694,7 +1933,9 @@ function clearRollingResults(){
   document.getElementById("rwTableBody").innerHTML = "";
   document.getElementById("rwResults").style.display = "none";
   document.getElementById("rwEmptyState").style.display = "block";
+  setRollingDataTabVisible(false);
   setRollingPanelExpanded(false);
+  if(activeAnalysisTab === "rolling") renderPreviewPanel();
 }
 function resetRollingControls(){
   document.getElementById("rwRiskSlider").value = "1";
@@ -2145,6 +2386,7 @@ function toggleTickerSelection(ticker){
   }
   weights = buildEqualWeights(getSelectedTickers());
   clearOptimizerPreview("Selection changed. Run the optimizer to see results.");
+  clearRollingResults();
   update();
 }
 
@@ -2196,11 +2438,31 @@ function switchTab(tab, btn){
   update();
 }
 
+function switchAnalysisTab(tab, btn){
+  activeAnalysisTab = tab;
+  btn.parentElement.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.querySelectorAll(".analysis-pane").forEach(panel => panel.classList.remove("active"));
+  document.getElementById(`analysisPane${tab === "optimizer" ? "Optimizer" : "Rolling"}`).classList.add("active");
+  renderPreviewPanel();
+  requestAnimationFrame(resizeInteractiveCharts);
+}
+
 function switchDataTab(tab, btn){
   btn.parentElement.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
   document.querySelectorAll(".data-tab").forEach(panel => panel.classList.remove("active"));
   document.getElementById(`dataTab${tab.charAt(0).toUpperCase()}${tab.slice(1)}`).classList.add("active");
+}
+
+function setRollingDataTabVisible(visible){
+  const rollingBtn = document.getElementById("dataTabBtnRolling");
+  const rollingPanel = document.getElementById("dataTabRolling");
+  if(!rollingBtn || !rollingPanel) return;
+  rollingBtn.style.display = visible ? "" : "none";
+  if(!visible && rollingBtn.classList.contains("active")){
+    switchDataTab("summary", document.getElementById("dataTabBtnSummary"));
+  }
 }
 
 function switchYbyValueMode(mode, btn){
@@ -2320,12 +2582,19 @@ function onRwSliderChange(){
   rollingCleared = false;
   const w = +document.getElementById("rwRiskSlider").value;
   document.getElementById("rwSliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
+  if(rollingResultsData){
+    preserveScrollDuring(() => clearRollingResults());
+    updateOptimizerControls(getSelectedTickers());
+  }
 }
 
 function onRwMaxTickerChange(){
   rollingCleared = false;
   const v = +document.getElementById("rwMaxTickerSlider").value;
   document.getElementById("rwMaxTickerVal").textContent = v >= 100 ? "No Limit" : `Max ${v}% / ticker`;
+  if(rollingResultsData){
+    preserveScrollDuring(() => clearRollingResults());
+  }
   updateOptimizerControls(getSelectedTickers());
 }
 
@@ -2395,6 +2664,7 @@ async function runOptimizer(){
     windowLabel: getOptimizerWindowLabel(startIdx),
     optPoint:{cagr:optCagr, dd:optDD, alloc:optAlloc}
   };
+  optimizerPreviewPoint = frontierData.optPoint;
   previewAlloc = optAlloc;
   if(frontierChart){frontierChart.destroy(); frontierChart = null;}
   renderFrontier(w, frontierData.optPoint);
@@ -2467,27 +2737,8 @@ function onFrontierClick(evt, ptAllocs, pareto){
 }
 
 function renderOptResult(pt){
-  const inner = document.getElementById("optResultInner");
-  const w = +document.getElementById("riskSlider").value;
-  const activeTickers = getSelectedTickers();
-  const maxAlloc = Math.max(...activeTickers.map(t => pt.alloc[t]||0), 1);
-  inner.innerHTML = `
-    <div style="color:#6b7280;font-size:11px;margin-bottom:12px">${frontierData ? frontierData.windowLabel : getOptimizerWindowLabel(getStartIdx())}</div>
-    <div class="opt-metrics">
-      <div class="opt-metric"><div class="opt-metric-label">CAGR</div><div class="opt-metric-val green">${fmtP(pt.cagr)}</div></div>
-      <div class="opt-metric"><div class="opt-metric-label">Max Drawdown</div><div class="opt-metric-val red">-${fmtP(pt.dd)}</div></div>
-      <div class="opt-metric"><div class="opt-metric-label">Score (CAGR/DD^w)</div><div class="opt-metric-val blue">${scoreFunc(pt.cagr, pt.dd, w).toFixed(2)}</div></div>
-      <div class="opt-metric"><div class="opt-metric-label">Total</div><div class="opt-metric-val">${fmtW(activeTickers.reduce((s,t) => s + (pt.alloc[t]||0), 0))}</div></div>
-    </div>
-    <div style="margin-bottom:4px">
-      ${activeTickers.map(t => `
-        <div class="opt-alloc-row">
-          <span class="opt-ticker" style="color:${COLORS[t]}">${t}</span>
-          <div class="opt-bar-wrap"><div class="opt-bar" style="width:${((pt.alloc[t]||0) / maxAlloc * 100).toFixed(1)}%;background:${COLORS[t]}"></div></div>
-          <span class="opt-val">${fmtW(pt.alloc[t]||0)}</span>
-        </div>`).join("")}
-    </div>
-    <button class="apply-btn" onclick="applyOptimal()">Apply This Allocation \u2191</button>`;
+  optimizerPreviewPoint = pt;
+  if(activeAnalysisTab === "optimizer") renderPreviewPanel();
 }
 
 function applyOptimal(){
@@ -2495,6 +2746,12 @@ function applyOptimal(){
   weights = Object.fromEntries(TICKERS.map(t => [t, previewAlloc[t]||0]));
   update();
   window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function selectRollingPreview(preview){
+  rollingPreviewState = preview;
+  if(rollingResultsData) renderRwTable(rollingResultsData);
+  if(activeAnalysisTab === "rolling") renderPreviewPanel();
 }
 
 function setRollingPanelExpanded(expanded){
@@ -2559,10 +2816,14 @@ async function runRollingOptimizer(){
   setRollingPanelExpanded(true);
   document.getElementById("rwResults").style.display = "flex";
   document.getElementById("rwEmptyState").style.display = "none";
+  setRollingDataTabVisible(true);
+  rollingResultsData = results;
+  rollingPreviewState = buildRollingAveragePreview(results);
   renderRwInsights(results);
   renderRwAllocChart(results);
   renderRwPerfChart(results);
   renderRwTable(results);
+  if(activeAnalysisTab === "rolling") renderPreviewPanel();
 }
 
 function renderRwInsights(results){
@@ -2612,6 +2873,10 @@ function renderRwAllocChart(results){
     data:{labels:results.map(r => r.label),
       datasets:rollingTickers.map(t => ({label:t, data:results.map(r => (r.alloc[t]||0)), backgroundColor:COLORS[t]+"cc", borderColor:COLORS[t], borderWidth:1}))},
     options:{responsive:true, maintainAspectRatio:false,
+      onClick:(evt, elements) => {
+        if(!elements.length) return;
+        selectRollingPreview(buildRollingWindowPreview(results[elements[0].index]));
+      },
       plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
         tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
           callbacks:{label:c => ` ${c.dataset.label}: ${c.parsed.y}%`}}},
@@ -2630,6 +2895,10 @@ function renderRwPerfChart(results){
       {label:"Max Drawdown (%)", data:results.map(r => +r.dd.toFixed(1)), borderColor:"#f87171", backgroundColor:"transparent", borderWidth:2, pointRadius:4, borderDash:[4,3], yAxisID:"y"}
     ]},
     options:{responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
+      onClick:(evt, elements) => {
+        if(!elements.length) return;
+        selectRollingPreview(buildRollingWindowPreview(results[elements[0].index]));
+      },
       plugins:{legend:{labels:{color:"#9ca3af", boxWidth:10, font:{size:10}}},
         tooltip:{backgroundColor:"#111827", borderColor:"#374151", borderWidth:1, titleColor:"#d1d5db", bodyColor:"#fff",
           callbacks:{label:c => ` ${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}}},
@@ -2649,22 +2918,31 @@ function renderRwTable(results){
   const tbody = document.getElementById("rwTableBody"); tbody.innerHTML = "";
   results.forEach(r => {
     const tr = document.createElement("tr");
+    tr.className = "selectable-row";
+    if(rollingPreviewState && rollingPreviewState.kind === "window" && rollingPreviewState.windowLabel === r.label){
+      tr.classList.add("is-selected");
+    }
     tr.innerHTML = `<td class="left mono" style="font-weight:600">${r.label}</td>
       ${rollingTickers.map(t => `<td class="right mono ${(r.alloc[t]||0) === 0 ? "muted" : ""}">${(r.alloc[t]||0) === 0 ? "\u2014" : fmtW(r.alloc[t])}</td>`).join("")}
       <td class="right green">${fmtP(r.cagr)}</td>
       <td class="right red">-${fmtP(r.dd)}</td>
       <td class="right blue">${r.score.toFixed(2)}</td>`;
+    tr.onclick = () => selectRollingPreview(buildRollingWindowPreview(r));
     tbody.appendChild(tr);
   });
   const avgCagr = results.reduce((s,r) => s + r.cagr, 0) / results.length;
   const avgDD   = results.reduce((s,r) => s + r.dd, 0) / results.length;
   const avgAlloc = Object.fromEntries(rollingTickers.map(t => [t, Math.round(results.reduce((s,r) => s + (r.alloc[t]||0), 0) / results.length)]));
-  const tr = document.createElement("tr"); tr.className = "portfolio-row";
+  const tr = document.createElement("tr"); tr.className = "portfolio-row selectable-row";
+  if(rollingPreviewState && rollingPreviewState.kind === "average"){
+    tr.classList.add("is-selected");
+  }
   tr.innerHTML = `<td class="left">Average</td>
     ${rollingTickers.map(t => `<td class="right mono">${fmtW(avgAlloc[t])}</td>`).join("")}
     <td class="right green">${fmtP(avgCagr)}</td>
     <td class="right red">-${fmtP(avgDD)}</td>
     <td class="right muted">\u2014</td>`;
+  tr.onclick = () => selectRollingPreview(buildRollingAveragePreview(results));
   tbody.appendChild(tr);
 }
 
