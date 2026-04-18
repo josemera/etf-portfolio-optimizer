@@ -6,3 +6,10 @@ SPEC.md
 # IDE
 .idea/
 /.codex/config.toml
+
+# Node
+node_modules/
+package-lock.json
+
+# MCP config
+.mcp.json
