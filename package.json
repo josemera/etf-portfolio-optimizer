@@ -1,0 +1,16 @@
+{
+  "name": "etf-portfolio-optimizer",
+  "version": "1.0.0",
+  "description": "ETF portfolio backtester with monthly return data",
+  "type": "module",
+  "scripts": {
+    "update-data": "node scripts/update-data.js",
+    "validate-data": "node scripts/validate-data.js"
+  },
+  "dependencies": {
+    "yahoo-finance2": "^3.14.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
