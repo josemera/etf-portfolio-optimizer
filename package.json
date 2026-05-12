@@ -4,7 +4,8 @@
   "description": "ETF portfolio backtester with monthly return data",
   "type": "module",
   "scripts": {
-    "update-data": "node scripts/update-data.js",
+    "start":         "node server.js",
+    "update-data":   "node scripts/update-data.js",
     "validate-data": "node scripts/validate-data.js"
   },
   "dependencies": {

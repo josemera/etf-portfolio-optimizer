@@ -1436,16 +1436,31 @@
 
 <script>
 // ══════════════════════════════════════════════════
+// LOCAL STORAGE — persistence layer for refreshed data
+// ══════════════════════════════════════════════════
+const LS_KEY = 'etf_portfolio_data';
+
+function lsLoad() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (_) { return null; }
+}
+function lsSave(payload) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(payload)); } catch (_) {}
+}
+
+// ══════════════════════════════════════════════════
 // DATA SERVICE — abstraction layer for data fetching
-// Browser mode:   FallbackDataService (uses BUNDLED_RETURNS)
+// Browser mode:   FallbackDataService (uses localStorage → BUNDLED_RETURNS)
 // Electron mode:  ElectronDataService (uses IPC → main process + yahoo-finance2)
-//
-// To add a new data source, implement the three async methods below and swap
-// the factory line at the bottom of this block.
 // ══════════════════════════════════════════════════
 
 class FallbackDataService {
   async fetchReturns() {
+    // Use localStorage data if it's newer than the bundled snapshot
+    const stored = lsLoad();
+    if (stored?.returns && (
+      stored.endYear > BUNDLED_END_YEAR ||
+      (stored.endYear === BUNDLED_END_YEAR && stored.endMonth > BUNDLED_END_MONTH)
+    )) return stored;
     return {
       returns:   BUNDLED_RETURNS,
       endYear:   BUNDLED_END_YEAR,
@@ -1454,12 +1469,7 @@ class FallbackDataService {
       fetchedAt: BUNDLED_FETCHED_AT,
     };
   }
-  async validate() {
-    return {
-      ok: null, checked: 0, mismatches: [],
-      summary: 'Run "npm run validate-data" to validate against Yahoo Finance.',
-    };
-  }
+  async validate() { return { ok: null }; }
   isElectron() { return false; }
 }
 
@@ -1472,6 +1482,137 @@ class ElectronDataService {
 const dataService = window.electronAPI
   ? new ElectronDataService()
   : new FallbackDataService();
+
+// ══════════════════════════════════════════════════
+// MONTH UTILITIES
+// ══════════════════════════════════════════════════
+
+function prevYM(ym) {
+  let [y, m] = ym.split('-').map(Number);
+  if (--m < 1) { m = 12; y--; }
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+function nextYM(ym) {
+  let [y, m] = ym.split('-').map(Number);
+  if (++m > 12) { m = 1; y++; }
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+function monthRangeYM(start, end) {
+  const months = [];
+  let cur = start;
+  while (cur <= end) { months.push(cur); cur = nextYM(cur); }
+  return months;
+}
+/** Convert array index (anchored at DATA_START_YEAR/MONTH) → 'YYYY-MM' */
+function idxToYM(i) {
+  const total = DATA_START_YEAR * 12 + (DATA_START_MONTH - 1) + i;
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
+}
+/**
+ * Returns data availability:
+ *   throughYM      — safe month we can reliably fetch (2 weekdays past month-end)
+ *   waitingForYM   — the month just ended but not yet settled, or null
+ *   availableAfter — Date when waitingForYM settles, or null
+ */
+function getDataAvailability(today = new Date()) {
+  function addWeekdays(date, n) {
+    const d = new Date(date);
+    let added = 0;
+    while (added < n) {
+      d.setDate(d.getDate() + 1);
+      if (d.getDay() !== 0 && d.getDay() !== 6) added++;
+    }
+    return d;
+  }
+  const lastDayPrev = new Date(today.getFullYear(), today.getMonth(), 0);
+  const safeDate    = addWeekdays(lastDayPrev, 2);
+  const prevYMStr   = `${lastDayPrev.getFullYear()}-${String(lastDayPrev.getMonth() + 1).padStart(2, '0')}`;
+
+  if (today >= safeDate) {
+    return { throughYM: prevYMStr, waitingForYM: null, availableAfter: null };
+  }
+  const oneMoreBack = new Date(today.getFullYear(), today.getMonth() - 1, 0);
+  const throughYM   = `${oneMoreBack.getFullYear()}-${String(oneMoreBack.getMonth() + 1).padStart(2, '0')}`;
+  return { throughYM, waitingForYM: prevYMStr, availableAfter: safeDate };
+}
+
+// ══════════════════════════════════════════════════
+// YAHOO FINANCE BROWSER CLIENT
+// ══════════════════════════════════════════════════
+
+// Routing:
+//   file://             → blocked by Yahoo Finance (null origin); show clear error
+//   http://localhost    → local proxy /api/yf/{ticker} via server.js (bypasses CORS)
+//   https://*           → direct Yahoo Finance call (HTTPS origins are allowed by YF CORS policy)
+const _isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+let _yfCrumb = null;
+
+async function getYahooCrumb() {
+  if (_yfCrumb) return _yfCrumb;
+  const res = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { credentials: 'include' });
+  if (!res.ok) throw new Error(`Crumb fetch failed: ${res.status}`);
+  _yfCrumb = (await res.text()).trim();
+  return _yfCrumb;
+}
+
+/**
+ * Fetch monthly adjusted-close prices from Yahoo Finance.
+ * Returns { 'YYYY-MM': adjClosePrice } map.
+ * fromYM: first month of returns needed (fetches one extra prior month for return calc)
+ * throughYM: last month to include
+ */
+async function fetchYahooAdjClose(ticker, fromYM, throughYM) {
+  if (window.location.protocol === 'file:') {
+    throw new Error('Open via "npm start" (localhost) or host online to enable live data');
+  }
+
+  const [py, pm] = prevYM(fromYM).split('-').map(Number);
+  const [ty, tm] = throughYM.split('-').map(Number);
+  const lastDay  = new Date(Date.UTC(ty, tm, 0)).getUTCDate();
+  const period1  = Math.floor(Date.UTC(py, pm - 1, 1) / 1000);
+  const period2  = Math.floor(Date.UTC(ty, tm - 1, lastDay, 23, 59, 59) / 1000);
+
+  const yfParams = new URLSearchParams({
+    period1, period2, interval: '1mo',
+    events: 'div,splits', includeAdjustedClose: 'true',
+  });
+
+  let res;
+  if (_isLocalhost) {
+    // Route through local proxy server (server.js) — http://localhost can't call YF directly
+    res = await fetch(`/api/yf/${ticker}?${yfParams}`);
+  } else {
+    // https:// hosting (GitHub Pages, etc.) — Yahoo Finance allows HTTPS cross-origin requests
+    res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?${yfParams}`);
+    if (res.status === 401 || res.status === 403) {
+      _yfCrumb = null;
+      const crumb = await getYahooCrumb();
+      yfParams.set('crumb', crumb);
+      res = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?${yfParams}`,
+        { credentials: 'include' }
+      );
+    }
+  }
+
+  if (!res.ok) throw new Error(`Yahoo Finance ${ticker}: HTTP ${res.status}`);
+
+  const data   = await res.json();
+  const result = data?.chart?.result?.[0];
+  if (!result) throw new Error(`No data returned for ${ticker}`);
+
+  const timestamps = result.timestamp ?? [];
+  const adjCloses  = result.indicators?.adjclose?.[0]?.adjclose ?? [];
+
+  const priceMap = {};
+  for (let i = 0; i < timestamps.length; i++) {
+    if (adjCloses[i] == null) continue;
+    const d  = new Date(timestamps[i] * 1000);
+    const ym = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    priceMap[ym] = adjCloses[i];
+  }
+  return priceMap;
+}
 
 // ══════════════════════════════════════════════════
 // CONSTANTS
@@ -3089,7 +3230,8 @@ async function initData() {
       CUM[t][i + 1] = CUM[t][i] * (1 + (r === null ? 0 : r) / 100);
     }
   });
-  setDataStatusUI(payload.fetchedAt, dataService.isElectron());
+  const isLive = payload.fetchedAt !== BUNDLED_FETCHED_AT;
+  setDataStatusUI(payload.fetchedAt, isLive);
 }
 
 function setDataStatusUI(fetchedAt, isLive = false) {
@@ -3107,25 +3249,98 @@ function setDataStatusUI(fetchedAt, isLive = false) {
 }
 
 async function onRefreshData() {
-  if (!dataService.isElectron()) {
-    const label = document.getElementById('dataStatusLabel');
-    if (label) {
-      const orig = label.textContent;
-      label.textContent = 'Run "npm run update-data" to refresh';
-      setTimeout(() => { label.textContent = orig; }, 4000);
-    }
-    return;
-  }
-  const btn = document.getElementById('refreshDataBtn');
+  const btn   = document.getElementById('refreshDataBtn');
+  const label = document.getElementById('dataStatusLabel');
+  const origLabel = label?.textContent;
   if (btn) btn.disabled = true;
+
   try {
-    const payload = await dataService.fetchReturns();
-    DATA_END_YEAR    = payload.endYear;
-    DATA_END_MONTH   = payload.endMonth;
-    NUM_MONTHS       = payload.numMonths;
-    MONTHLY_RETURNS  = payload.returns;
-    LAST_FULL_YEAR   = DATA_END_MONTH === 12 ? DATA_END_YEAR : DATA_END_YEAR - 1;
-    DISPLAY_END_LABEL = `${MONTH_NAMES[DATA_END_MONTH - 1]} ${DATA_END_YEAR}`;
+    const { throughYM, waitingForYM, availableAfter } = getDataAvailability();
+    const startYM   = `${DATA_START_YEAR}-${String(DATA_START_MONTH).padStart(2, '0')}`;
+    const [ey, em]  = throughYM.split('-').map(Number);
+
+    // ① Read from localStorage — source of truth for what we already have
+    const stored = lsLoad();
+    const storedThroughYM = stored
+      ? `${stored.endYear}-${String(stored.endMonth).padStart(2, '0')}`
+      : BUNDLED_FETCHED_AT;
+
+    // If already current through the safe month, nothing to fetch
+    if (storedThroughYM >= throughYM) {
+      // Seed localStorage from bundled data if it's empty, so Validate has something to work with
+      if (!stored) {
+        const allMonths = monthRangeYM(
+          `${DATA_START_YEAR}-${String(DATA_START_MONTH).padStart(2, '0')}`,
+          BUNDLED_FETCHED_AT
+        );
+        lsSave({
+          returns: BUNDLED_RETURNS,
+          endYear: BUNDLED_END_YEAR,
+          endMonth: BUNDLED_END_MONTH,
+          numMonths: allMonths.length,
+          fetchedAt: BUNDLED_FETCHED_AT,
+        });
+      }
+      if (label) {
+        if (waitingForYM) {
+          const [wY, wM] = waitingForYM.split('-').map(Number);
+          const dateStr = availableAfter.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+          label.textContent = `${MONTH_NAMES[wM - 1]} ${wY} data not yet settled — check back after ${dateStr}`;
+        } else {
+          label.textContent = `Data is current through ${MONTH_NAMES[em - 1]} ${ey}`;
+        }
+        setTimeout(() => { label.textContent = origLabel; }, 6000);
+      }
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    // ② Build sparse map seeded from localStorage (or bundled if localStorage is empty)
+    const sparse = {};
+    const srcEndYM = storedThroughYM;
+    for (const t of TICKERS) {
+      sparse[t] = {};
+      const srcReturns = stored?.returns?.[t] ?? BUNDLED_RETURNS[t] ?? [];
+      const srcMonths  = monthRangeYM(startYM, srcEndYM);
+      srcReturns.forEach((v, i) => {
+        if (v !== null && srcMonths[i]) sparse[t][srcMonths[i]] = v;
+      });
+    }
+
+    // ③ Only fetch months not already in localStorage (or bundled)
+    const errors = [];
+    for (const t of TICKERS) {
+      const latest = Object.keys(sparse[t]).sort().at(-1);
+      const fromYM = !latest ? startYM : latest >= throughYM ? null : nextYM(latest);
+      if (!fromYM) continue;
+
+      if (label) label.textContent = `Fetching ${t} (${fromYM}–${throughYM})…`;
+      try {
+        const priceMap = await fetchYahooAdjClose(t, fromYM, throughYM);
+        for (const month of monthRangeYM(fromYM, throughYM)) {
+          const prev = prevYM(month);
+          if (priceMap[month] == null || priceMap[prev] == null) continue;
+          const raw = (priceMap[month] / priceMap[prev] - 1) * 100;
+          sparse[t][month] = Math.round(raw * 100) / 100;
+        }
+      } catch (err) {
+        errors.push({ ticker: t, message: err.message });
+      }
+    }
+
+    // ④ Rebuild full arrays and persist to localStorage
+    const allMonths = monthRangeYM(startYM, throughYM);
+    const newReturns = {};
+    for (const t of TICKERS) newReturns[t] = allMonths.map(m => sparse[t]?.[m] ?? null);
+    const fetchedAt = `${ey}-${String(em).padStart(2, '0')}`;
+    lsSave({ returns: newReturns, endYear: ey, endMonth: em, numMonths: allMonths.length, fetchedAt });
+
+    // ⑤ Update in-memory state
+    DATA_END_YEAR = ey; DATA_END_MONTH = em;
+    NUM_MONTHS = allMonths.length;
+    MONTHLY_RETURNS = newReturns;
+    LAST_FULL_YEAR = em === 12 ? ey : ey - 1;
+    DISPLAY_END_LABEL = `${MONTH_NAMES[em - 1]} ${ey}`;
     TICKERS.forEach(t => {
       CUM[t] = new Float64Array(NUM_MONTHS + 1);
       CUM[t][0] = 1.0;
@@ -3134,34 +3349,110 @@ async function onRefreshData() {
         CUM[t][i + 1] = CUM[t][i] * (1 + (r === null ? 0 : r) / 100);
       }
     });
-    setDataStatusUI(payload.fetchedAt, true);
+
+    setDataStatusUI(fetchedAt, true);
     clearOptimizerPreview('Data refreshed. Run the optimizer to see results.');
     clearOptimizerRun();
     update();
+
+    if (errors.length && label) {
+      label.textContent = `Partial update — failed: ${errors.map(e => e.ticker).join(', ')}`;
+    } else if (waitingForYM && label) {
+      const [wY, wM] = waitingForYM.split('-').map(Number);
+      const dateStr = availableAfter.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      label.textContent = `Updated through ${MONTH_NAMES[em - 1]} ${ey}. ${MONTH_NAMES[wM - 1]} ${wY} available after ${dateStr}`;
+      setTimeout(() => { label.textContent = origLabel; }, 8000);
+    }
+  } catch (err) {
+    if (label) {
+      label.textContent = `Refresh failed: ${err.message}`;
+      setTimeout(() => { label.textContent = origLabel; }, 6000);
+    }
   } finally {
     if (btn) btn.disabled = false;
   }
 }
 
 async function onValidateData() {
-  if (!dataService.isElectron()) {
-    const label = document.getElementById('dataStatusLabel');
-    if (label) {
-      const orig = label.textContent;
-      label.textContent = 'Run "npm run validate-data" to validate';
-      setTimeout(() => { label.textContent = orig; }, 4000);
-    }
-    return;
-  }
-  const btn = document.getElementById('validateBtn');
+  const btn   = document.getElementById('validateBtn');
+  const label = document.getElementById('dataStatusLabel');
+  const origLabel = label?.textContent;
   if (btn) btn.disabled = true;
+
   try {
-    const result = await dataService.validate();
-    const label = document.getElementById('dataStatusLabel');
+    // ① Validate what's actually persisted in localStorage
+    const stored = lsLoad();
+    if (!stored?.returns) {
+      if (label) {
+        label.textContent = 'No stored data to validate — click Refresh first';
+        setTimeout(() => { label.textContent = origLabel; }, 5000);
+      }
+      return;
+    }
+
+    const startYM   = `${DATA_START_YEAR}-${String(DATA_START_MONTH).padStart(2, '0')}`;
+    const throughYM = `${stored.endYear}-${String(stored.endMonth).padStart(2, '0')}`;
+    const allMonths = monthRangeYM(startYM, throughYM);
+    let totalChecked = 0;
+    const mismatches = [], fetchErrors = [];
+
+    // ② Re-fetch live data and compare to localStorage values
+    for (const t of TICKERS) {
+      if (label) label.textContent = `Validating ${t}…`;
+      const storedArr = stored.returns[t] ?? [];
+      try {
+        const priceMap = await fetchYahooAdjClose(t, startYM, throughYM);
+        storedArr.forEach((local, i) => {
+          if (local === null) return;
+          const month = allMonths[i];
+          const prev  = prevYM(month);
+          if (priceMap[month] == null || priceMap[prev] == null) return;
+          const yahoo = Math.round((priceMap[month] / priceMap[prev] - 1) * 10000) / 100;
+          const diff  = Math.round((local - yahoo) * 100) / 100;
+          totalChecked++;
+          if (Math.abs(diff) > 0.01) mismatches.push({ ticker: t, month, local, yahoo, diff });
+        });
+      } catch (err) {
+        fetchErrors.push(t);
+      }
+    }
+
+    // ③ Correct mismatches in localStorage and in-memory state
+    if (mismatches.length > 0) {
+      const correctedReturns = structuredClone(stored.returns);
+      for (const { ticker, month, yahoo } of mismatches) {
+        const idx = allMonths.indexOf(month);
+        if (idx >= 0 && correctedReturns[ticker]) correctedReturns[ticker][idx] = yahoo;
+      }
+      lsSave({ ...stored, returns: correctedReturns });
+      MONTHLY_RETURNS = correctedReturns;
+      TICKERS.forEach(t => {
+        CUM[t] = new Float64Array(NUM_MONTHS + 1);
+        CUM[t][0] = 1.0;
+        for (let i = 0; i < NUM_MONTHS; i++) {
+          const r = MONTHLY_RETURNS[t][i];
+          CUM[t][i + 1] = CUM[t][i] * (1 + (r === null ? 0 : r) / 100);
+        }
+      });
+      update();
+    }
+
+    const ok = mismatches.length === 0 && fetchErrors.length === 0;
+    const icon = ok ? '✓' : mismatches.length ? '↻' : '✗';
+    const summary = ok
+      ? `${totalChecked} values across ${TICKERS.length} tickers match Yahoo Finance`
+      : mismatches.length
+        ? `${mismatches.length} value(s) corrected from Yahoo Finance`
+        : `Fetch failed for: ${fetchErrors.join(', ')}`;
+
     if (label) {
-      const orig = label.textContent;
-      label.textContent = result.ok ? `✓ ${result.summary}` : `✗ ${result.summary}`;
-      setTimeout(() => { label.textContent = orig; }, 6000);
+      label.textContent = `${icon} ${summary}`;
+      setTimeout(() => { label.textContent = origLabel; }, 8000);
+    }
+  } catch (err) {
+    if (label) {
+      label.textContent = `Validate failed: ${err.message}`;
+      setTimeout(() => { label.textContent = origLabel; }, 6000);
     }
   } finally {
     if (btn) btn.disabled = false;
