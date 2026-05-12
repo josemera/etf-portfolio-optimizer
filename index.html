@@ -1543,7 +1543,7 @@ function getDataAvailability(today = new Date()) {
 // Routing:
 //   file://             → blocked by Yahoo Finance (null origin); show clear error
 //   http://localhost    → local proxy /api/yf/{ticker} via server.js (bypasses CORS)
-//   https://*           → direct Yahoo Finance call (HTTPS origins are allowed by YF CORS policy)
+//   https://*           → corsproxy.io proxy (Yahoo Finance blocks non-localhost HTTPS origins)
 const _isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 let _yfCrumb = null;
 
@@ -1582,17 +1582,10 @@ async function fetchYahooAdjClose(ticker, fromYM, throughYM) {
     // Route through local proxy server (server.js) — http://localhost can't call YF directly
     res = await fetch(`/api/yf/${ticker}?${yfParams}`);
   } else {
-    // https:// hosting (GitHub Pages, etc.) — Yahoo Finance allows HTTPS cross-origin requests
-    res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?${yfParams}`);
-    if (res.status === 401 || res.status === 403) {
-      _yfCrumb = null;
-      const crumb = await getYahooCrumb();
-      yfParams.set('crumb', crumb);
-      res = await fetch(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?${yfParams}`,
-        { credentials: 'include' }
-      );
-    }
+    // https:// hosting (GitHub Pages, etc.) — route through corsproxy.io since Yahoo Finance
+    // blocks non-localhost HTTPS origins; proxy adds the required CORS headers transparently
+    const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?${yfParams}`;
+    res = await fetch(`https://corsproxy.io/?${encodeURIComponent(yfUrl)}`);
   }
 
   if (!res.ok) throw new Error(`Yahoo Finance ${ticker}: HTTP ${res.status}`);
