@@ -1580,12 +1580,12 @@ async function fetchYahooAdjClose(ticker, fromYM, throughYM) {
   let res;
   if (_isLocalhost) {
     // Route through local proxy server (server.js) — http://localhost can't call YF directly
-    res = await fetch(`/api/yf/${ticker}?${yfParams}`);
+    res = await fetch(`/api/yf/${ticker}?${yfParams}`, { cache: 'no-store' });
   } else {
     // https:// hosting (GitHub Pages, etc.) — route through corsproxy.io since Yahoo Finance
     // blocks non-localhost HTTPS origins; proxy adds the required CORS headers transparently
     const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?${yfParams}`;
-    res = await fetch(`https://corsproxy.io/?${encodeURIComponent(yfUrl)}`);
+    res = await fetch(`https://corsproxy.io/?${encodeURIComponent(yfUrl)}`, { cache: 'no-store' });
   }
 
   if (!res.ok) throw new Error(`Yahoo Finance ${ticker}: HTTP ${res.status}`);
