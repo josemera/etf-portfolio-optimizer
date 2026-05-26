@@ -22,7 +22,7 @@ const REPO_ROOT  = join(__dirname, '..');
 const TICKERS_FILE = join(REPO_ROOT, 'data', 'tickers.txt');
 const JSON_FILE    = join(REPO_ROOT, 'data', 'monthly_returns.json');
 const HTML_FILE    = join(REPO_ROOT, 'index.html');
-const DATA_START   = '2012-01';
+const DATA_START   = '2004-01';
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
 const { values: argv } = parseArgs({
@@ -224,7 +224,7 @@ function patchHtml(payload) {
     )
     .replace(
       /const (?:NUM_MONTHS|BUNDLED_NUM_MONTHS) = \d+;[^\n]*/,
-      `const BUNDLED_NUM_MONTHS = ${numMonths}; // Jan 2012 – ${monthLabel} ${endYear}`
+      `const BUNDLED_NUM_MONTHS = ${numMonths}; // Jan ${DATA_START.slice(0,4)} – ${monthLabel} ${endYear}`
     )
     .replace(
       /const BUNDLED_FETCHED_AT = "[^"]*";/,
@@ -234,7 +234,7 @@ function patchHtml(payload) {
   // Build the new BUNDLED_RETURNS block
   const tickers = Object.keys(returns);
   const body = tickers
-    .map(t => `  ${t}: [\n${formatReturnsArray(returns[t], 2012)}\n  ]`)
+    .map(t => `  ${t}: [\n${formatReturnsArray(returns[t], +DATA_START.slice(0,4))}\n  ]`)
     .join(',\n');
   const newBlock = body
     ? `const BUNDLED_RETURNS = {\n${body},\n};`

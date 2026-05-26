@@ -24,7 +24,7 @@ import { parseArgs } from 'util';
 const __dirname  = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT  = join(__dirname, '..');
 const JSON_FILE  = join(REPO_ROOT, 'data', 'monthly_returns.json');
-const DATA_START = '2012-01';
+const DATA_START = '2004-01';
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
 const { values: argv } = parseArgs({
