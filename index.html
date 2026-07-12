@@ -1293,7 +1293,7 @@
                 <div class="panel-title">Window Analysis</div>
               </div>
               <span class="help-tip" aria-label="Window Analysis help">?
-                <span class="help-tip-popup">Runs the same optimizer logic across 10 rolling 5-year windows from 2012–16 through 2021–25 using the currently selected ETF universe. Results include average allocation, allocation stability, consistency, window charts, and the full rolling results table.</span>
+                <span class="help-tip-popup">Runs the same optimizer logic across rolling 5-year windows starting at 2012–16 and stepping annually through the latest complete 5-year span, using the currently selected ETF universe. Results include average allocation, allocation stability, consistency, window charts, and the full rolling results table.</span>
               </span>
             </div>
             <div class="opt-panel compact-panel rolling-controls-grid">
@@ -1668,6 +1668,7 @@ const BUNDLED_FETCHED_AT = "2026-04";
 
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const WINDOW_MONTHS = 60; // 5 years
+const ROLLING_START_YEAR = 2012; // first rolling window starts Jan 2012, independent of DATA_START_YEAR
 
 // Runtime variables — set by initData() from the active DataService
 let DATA_END_YEAR, DATA_END_MONTH, NUM_MONTHS;
@@ -3197,11 +3198,11 @@ async function runRollingOptimizer(){
   document.getElementById("rwProgressBar").style.display = "block";
   btn.disabled = true; fill.style.width = "0%";
 
-  // 10 windows: Jan 2012–Dec 2016 through Jan 2021–Dec 2025, stepping by 12 months
+  // Rolling 5-year windows anchored at Jan ROLLING_START_YEAR (2012–16, 2013–17, …),
+  // stepping by 12 months up to the latest complete 5-year span in the data
   const windows = [];
-  for(let yearOff = 0; yearOff <= 9; yearOff++){
-    const startIdx = yearOff * 12;
-    const startYear = DATA_START_YEAR + yearOff;
+  for(let startYear = ROLLING_START_YEAR; yearStartIdx(startYear) + WINDOW_MONTHS <= NUM_MONTHS; startYear++){
+    const startIdx = yearStartIdx(startYear);
     const endYear = startYear + 4;
     windows.push({startIdx, label:`${startYear}\u2013${String(endYear).slice(2)}`});
   }
@@ -3213,28 +3214,44 @@ async function runRollingOptimizer(){
     document.getElementById("rwProgressBar").style.display = "none";
     return;
   }
-  const SAMPLES_PER = 800, results = [];
+  const SAMPLES_PER = 800, results = [], skippedLabels = [];
   for(let wi = 0; wi < windows.length; wi++){
     const {startIdx, label} = windows[wi];
     document.getElementById("rwStatus").textContent = `Window ${wi+1}/${windows.length}: ${label}\u2026`;
     fill.style.width = ((wi / windows.length) * 85) + "%";
     await tick();
 
+    // Gate out tickers whose inception postdates this window's start: their
+    // pre-inception months are null (0% in CUM), so the optimizer would treat
+    // them as phantom zero-return, zero-drawdown cash.
+    const windowTickers = rollingTickers.filter(t => tickerAvailableAt(t, startIdx));
+    if(windowTickers.length < 2 || !hasFeasibleCap(windowTickers, maxUnits)){
+      skippedLabels.push(label);
+      continue;
+    }
+
     let bestSeed = null, bestScore = -Infinity;
     for(let s = 0; s < SAMPLES_PER; s++){
-      const alloc = randomPortfolio(rollingTickers, maxUnits);
-      const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, rollingTickers), startIdx, WINDOW_MONTHS, rollingTickers);
+      const alloc = randomPortfolio(windowTickers, maxUnits);
+      const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, windowTickers), startIdx, WINDOW_MONTHS, windowTickers);
       const sc = scoreFunc(cagr, dd, w);
       if(sc > bestScore){bestScore = sc; bestSeed = alloc;}
     }
 
-    const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(bestSeed, startIdx, w, WINDOW_MONTHS, rollingTickers, 5000, maxUnits);
+    const {alloc:optAlloc, cagr:optCagr, dd:optDD} = hillClimb(bestSeed, startIdx, w, WINDOW_MONTHS, windowTickers, 5000, maxUnits);
     results.push({label, startIdx, alloc:optAlloc, cagr:optCagr, dd:optDD, score:scoreFunc(optCagr, optDD, w)});
   }
 
   fill.style.width = "100%";
-  document.getElementById("rwStatus").textContent = `Done \u2014 ${windows.length} windows optimized (60-month each).`;
   btn.disabled = false;
+  if(!results.length){
+    document.getElementById("rwStatus").textContent = "No windows optimized \u2014 fewer than 2 selected ETFs have data at each window start.";
+    document.getElementById("rwProgressBar").style.display = "none";
+    fill.style.width = "0%";
+    return;
+  }
+  const skippedNote = skippedLabels.length ? ` Skipped ${skippedLabels.join(", ")} (insufficient ETF history).` : "";
+  document.getElementById("rwStatus").textContent = `Done \u2014 ${results.length} windows optimized (60-month each).${skippedNote}`;
   setTimeout(() => {document.getElementById("rwProgressBar").style.display = "none"; fill.style.width = "0%";}, 700);
 
   setRollingPanelExpanded(true);

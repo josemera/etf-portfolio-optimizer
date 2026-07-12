@@ -1,6 +1,6 @@
 # Portfolio Backtest & Optimizer
 
-A self-contained browser tool for backtesting ETF portfolios, selecting an ETF universe visually, exploring the efficient frontier, and running rolling-window optimization across historical market regimes. No server required; open the HTML file locally and everything runs in-browser.
+A self-contained browser tool for backtesting ETF portfolios, selecting an ETF universe visually, exploring the efficient frontier, and running rolling-window optimization across historical market regimes. No server required; open the HTML file locally and everything runs in-browser off the bundled data (an optional local server enables live Yahoo Finance refresh — see [Running the Tool](#running-the-tool)).
 
 ---
 
@@ -17,11 +17,11 @@ A self-contained browser tool for backtesting ETF portfolios, selecting an ETF u
 | SMH | VanEck Semiconductor ETF | Semiconductor cycle |
 | VGT | Vanguard Information Technology ETF | Pure US tech sector |
 | XLE | Energy Select Sector SPDR | Energy producers · ~3.5% yield |
-| GSG | iShares S&P GSCI Commodity-Indexed Trust | Broad commodities basket |
+| DVY | iShares Select Dividend ETF | High-dividend US stocks · ~3.5% yield |
 
-The app's embedded monthly total return data covers **Jan 2012-Mar 2026**.
+The app's bundled monthly total return data covers **Jan 2004-Apr 2026** (268 months per ETF).
 
-The Jan 2012 start is intentional. Some ETFs have earlier Yahoo Finance history, but starting in November 2011 would only provide two months for that first calendar year. The app, CSV export, and validator are all normalized to **Jan 2012** so the backtest window begins on a full-year boundary.
+**Not every ETF has data for the full range.** Most of the universe has complete Yahoo Finance history from Jan 2004, but SCHD's first data month is **Oct 2011** — its earlier months are stored as null and treated as unavailable. When the selected backtest start date predates an ETF's first data month, the app automatically deselects that ETF (its card turns amber); it becomes selectable again once the start date moves past its inception. The default backtest start is **Jan 2012**, at which point all 10 ETFs are available.
 
 ---
 
@@ -29,7 +29,7 @@ The Jan 2012 start is intentional. Some ETFs have earlier Yahoo Finance history,
 
 ### 1. Build the ETF Universe
 
-1. Set the **Start Month/Year** for the backtest period (Jan 2012-Mar 2026).
+1. Set the **Start Month/Year** for the backtest period (selectable back to Jan 2004; defaults to Jan 2012). Starting before Oct 2011 auto-deselects SCHD, which has no earlier data.
 2. Click ETF cards to **select or deselect** the universe you want the backtest and optimizer to use.
 3. At least **2 ETFs must remain selected**. Deselecting below that is blocked.
 4. Any selection change resets the portfolio to **equal weights** across the selected ETFs.
@@ -129,9 +129,9 @@ Important behavior:
 
 ### 5. Run the Rolling Window Optimizer
 
-The rolling optimizer runs the same optimization logic across **10 rolling 5-year windows** from 2012-16 through 2021-25.
+The rolling optimizer runs the same optimization logic across **rolling 5-year windows**, starting at 2012-16 and stepping annually through the latest complete 5-year span in the data (currently 2021-25).
 
-It uses the **currently selected ETF universe**.
+It uses the **currently selected ETF universe**. Within each window, ETFs whose inception postdates the window start are excluded from that window's optimization; a window is skipped (and flagged in the status line) if fewer than 2 ETFs remain or the max-allocation cap becomes infeasible.
 
 Outputs:
 
@@ -148,16 +148,14 @@ Outputs:
 
 ### Return Data
 
-Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. The embedded app dataset contains **171 monthly points per ETF** (Jan 2012-Mar 2026).
+Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. The bundled dataset contains **268 monthly points per ETF** (Jan 2004-Apr 2026); months before an ETF's inception (currently only SCHD, first data Oct 2011) are stored as null.
 
 ### Date Range Policy
 
-- The embedded app dataset starts at **Jan 2012**
-- The canonical CSV export also starts at **Jan 2012**
-- The validator rejects datasets that do not start at **2012-01**
-- The current end month is **Mar 2026**, because April 2026 is still open as of **April 10, 2026**
-
-This keeps the app aligned to closed monthly data only, on a clean calendar-year boundary.
+- The bundled dataset starts at **Jan 2004** (`DATA_START_YEAR`)
+- The bundled snapshot currently ends at **Apr 2026** (last fetch: April 2026)
+- Only **closed calendar months** are ever included — the data pipeline fetches through the last completed month
+- The bundle can be brought current with `npm run update-data` (rewrites `data/monthly_returns.json` and patches `BUNDLED_RETURNS` in `index.html`) or, in the browser, with the in-app **↻ Refresh** button (stores updates in localStorage)
 
 ### Max Drawdown
 
@@ -203,7 +201,7 @@ With a small ETF universe and a fixed historical sample, the optimizer is prone 
 A single optimizer output is often less useful than separating the problem into two buckets:
 
 **Bucket 1 — Safety / Diversification**  
-Lower drawdown, broader diversification. SCHD + VPU + GSG or other defensive mixes. Higher `w` settings tend to approximate this.
+Lower drawdown, broader diversification. SCHD + VPU + DVY or other defensive mixes. Higher `w` settings tend to approximate this.
 
 **Bucket 2 — Growth**  
 Higher CAGR, higher tolerated volatility. SMH + QQQ or VGT. Lower `w` settings tend to approximate this.
@@ -212,7 +210,7 @@ Higher CAGR, higher tolerated volatility. SMH + QQQ or VGT. Lower `w` settings t
 
 ## Running the Tool
 
-No installation required. Open `index.html` in any modern browser:
+No installation required for the core app. Open `index.html` in any modern browser:
 
 ```bash
 open index.html
@@ -220,52 +218,42 @@ open index.html
 
 Chart rendering requires an internet connection to load Chart.js from the Cloudflare CDN (`cdnjs.cloudflare.com`). The core calculations still run locally in the browser.
 
-## Data Validation
-
-Validate the hard-coded `MONTHLY_RETURNS` block in `index.html` against Yahoo Finance:
+To enable the in-app **↻ Refresh** and **✓ Validate** buttons (live Yahoo Finance data), serve the app instead of opening it as a file:
 
 ```bash
-python3 scripts/validate_monthly_returns.py
+npm start        # serves on http://localhost:3000 and proxies /api/yf/* to Yahoo Finance
 ```
 
-Validate the canonical CSV export instead:
+Routing for live data: `file://` is blocked by Yahoo Finance (the app shows a clear error), `http://localhost` goes through the bundled `server.js` proxy, and `https://` hosting (e.g. GitHub Pages) routes through `corsproxy.io`. Refreshed data is persisted in localStorage on top of the bundled snapshot.
+
+## Updating & Validating Data
+
+The canonical pipeline is Node-based (requires Node ≥ 20; `npm install` once for `yahoo-finance2`):
 
 ```bash
-python3 scripts/validate_monthly_returns.py --source-format csv
+npm run update-data     # fetches Yahoo Finance, updates data/monthly_returns.json and patches BUNDLED_RETURNS in index.html
+npm run validate-data   # recomputes every bundled monthly return against Yahoo Finance
 ```
 
-The validator recomputes each monthly return as:
+Both are anchored at **2004-01** and fetch only through the **last completed calendar month**. `update-data.js` supports `--refresh-all` and repeatable `--ticker` flags; `data/tickers.txt` defines the universe.
+
+Validation recomputes each monthly return as:
 
 ```text
 AdjClose[m] / AdjClose[m-1] - 1
 ```
 
-and compares the one-decimal rounded result against the stored value.
+and compares the rounded result against the stored value.
 
-The validator is intentionally constrained to datasets that begin at **2012-01**.
+### Legacy Python scripts
 
-## Canonical Data Export
-
-Build or update a CSV that can later be ingested into Supabase:
+The earlier Python tooling still exists but predates the Jan 2004 data extension — both scripts remain constrained to a **2012-01** start:
 
 ```bash
-python3 scripts/update_monthly_returns_csv.py
+python3 scripts/validate_monthly_returns.py                      # validate index.html data
+python3 scripts/validate_monthly_returns.py --source-format csv  # validate the CSV export
+python3 scripts/update_monthly_returns_csv.py                    # long-format CSV export (data/monthly_returns.csv) for future Supabase ingestion
 ```
-
-This writes [data/monthly_returns.csv](/Users/josemera/Sites/etf-portfolio-optimizer/data/monthly_returns.csv) in long format with:
-
-- `ticker`
-- `month`
-- `total_return_pct`
-- `source`
-- `fetched_at`
-
-Behavior:
-
-- Uses `data/tickers.txt` as the default ETF list, so the export universe is easy to extend
-- Enforces **2012-01** as the earliest supported month
-- Fetches only through the **last completed calendar month**
-- Reuses the existing CSV as a checkpoint and only fetches missing trailing months unless `--refresh-all` is passed
 
 ---
 
