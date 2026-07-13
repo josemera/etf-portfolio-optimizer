@@ -714,6 +714,19 @@
   #analysisPaneRolling .run-row .clear-btn {
     padding-inline: 14px;
   }
+  #analysisPaneWalkforward .run-row {
+    justify-content: flex-end;
+  }
+  #analysisPaneWalkforward .run-row .run-btn,
+  #analysisPaneWalkforward .run-row .clear-btn {
+    flex: 0 0 auto;
+  }
+  #analysisPaneWalkforward .run-row .run-btn {
+    padding-inline: 22px;
+  }
+  #analysisPaneWalkforward .run-row .clear-btn {
+    padding-inline: 14px;
+  }
   .numeric-control {
     display: flex;
     align-items: center;
@@ -852,6 +865,70 @@
     padding: 0;
     color: #6b7280;
     font-size: 12px;
+  }
+  .wf-panel {
+    flex: 1;
+  }
+  .wf-panel:not(.collapsed) {
+    flex: 0 0 auto;
+    min-height: 500px;
+  }
+  .wf-panel.collapsed {
+    flex: 0 0 auto;
+  }
+  .wf-panel.collapsed #wfResults {
+    display: none !important;
+  }
+  .wf-panel.collapsed #wfEmptyState {
+    display: block;
+    padding: 0;
+    color: #6b7280;
+    font-size: 12px;
+  }
+  .wf-results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  #wfEquityChart {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    max-width: 100%;
+  }
+  .wf-chart-wrap {
+    height: 380px;
+    min-height: 380px;
+  }
+  .wf-chart-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .wf-chart-toolbar .subpanel-title {
+    margin-bottom: 0;
+  }
+  .wf-bench-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: center;
+    color: #9ca3af;
+    font-size: 12px;
+  }
+  .wf-bench-checks label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .wf-bench-checks input {
+    accent-color: #3b82f6;
   }
   .rolling-results {
     display: flex;
@@ -1146,11 +1223,12 @@
           <div>
             <div class="panel-eyebrow">Analysis Workspace</div>
             <div class="panel-title">Optimizer Tools</div>
-            <div class="analysis-tab-copy">Use the tabbed workspace below to run either the single-period optimizer or the rolling-window analysis.</div>
+            <div class="analysis-tab-copy">Use the tabbed workspace below to run the single-period optimizer, the rolling-window analysis, or the walk-forward simulation.</div>
           </div>
           <div class="tabs analysis-tabs">
             <button class="tab active" id="analysisTabOptimizer" onclick="switchAnalysisTab('optimizer',this)">Optimizer</button>
             <button class="tab" id="analysisTabRolling" onclick="switchAnalysisTab('rolling',this)">Rolling Window</button>
+            <button class="tab" id="analysisTabWalkforward" onclick="switchAnalysisTab('walkforward',this)">Walk-Forward</button>
           </div>
         </div>
 
@@ -1352,6 +1430,122 @@
               </div>
             </div>
             <div id="rwEmptyState" class="opt-empty">Run the rolling analysis to populate this workspace.</div>
+          </section>
+        </div>
+
+        <div class="analysis-pane" id="analysisPaneWalkforward">
+          <section class="panel control-stack analysis-control-panel">
+            <div class="panel-head panel-head-help">
+              <div>
+                <div class="panel-eyebrow">Walk-Forward</div>
+                <div class="panel-title">Out-of-Sample Simulation</div>
+              </div>
+              <span class="help-tip" aria-label="Walk-Forward help">?
+                <span class="help-tip-popup">Simulates actually following the optimizer: each January it re-optimizes on the trailing lookback window, holds that allocation out-of-sample for 12 months, and repeats &mdash; chaining the results into one equity curve compared against benchmarks. Fixed universe starts at the first January where every selected ETF has full lookback history. Dynamic universe starts at the first January with at least 2 eligible ETFs whose universe is stable through the hold year (a mid-year joiner rounds the start forward to the next January); ETFs join as their history matures.</span>
+              </span>
+            </div>
+            <div class="opt-panel compact-panel rolling-controls-grid">
+              <div class="opt-desc">Optimize on trailing data, hold the result for a year, repeat &mdash; the honest test of whether the optimizer's picks carry forward out-of-sample.</div>
+              <div class="slider-row slider-control">
+                <div class="slider-label-row">
+                  <span class="slider-label left-lbl">&uarr; Max Return</span>
+                  <span class="slider-label right-lbl">&darr; Min Drawdown</span>
+                </div>
+                <div class="slider-track-row">
+                  <input type="range" id="wfRiskSlider" min="0" max="2" step="0.1" value="1" oninput="onWfSliderChange()">
+                </div>
+                <div class="slider-value-row">
+                  <span class="slider-val" id="wfSliderVal">Balanced (1.0)</span>
+                </div>
+              </div>
+              <div class="slider-row slider-control">
+                <div class="slider-label-row">
+                  <span class="slider-label left-lbl">&#9878; More Balanced</span>
+                  <span class="slider-label right-lbl">No Limit</span>
+                </div>
+                <div class="slider-track-row">
+                  <input type="range" id="wfMaxTickerSlider" min="10" max="100" step="5" value="100" oninput="onWfMaxTickerChange()">
+                </div>
+                <div class="slider-value-row">
+                  <span class="slider-val" id="wfMaxTickerVal">No Limit</span>
+                </div>
+              </div>
+              <div class="slider-row">
+                <label class="optimizer-control" for="wfLookback">
+                  <span>Lookback Window</span>
+                  <select id="wfLookback" onchange="onWfLookbackChange()">
+                    <option value="36">36 months</option>
+                    <option value="48">48 months</option>
+                    <option value="60" selected>60 months</option>
+                  </select>
+                </label>
+              </div>
+              <div class="slider-row">
+                <label class="optimizer-control">
+                  <span>Universe Mode</span>
+                  <div class="toggle-group-controls">
+                    <button class="toggle-btn active" type="button" id="wfModeFixed" onclick="setWfUniverseMode('fixed',this)">Fixed</button>
+                    <button class="toggle-btn" type="button" id="wfModeDynamic" onclick="setWfUniverseMode('dynamic',this)">Dynamic</button>
+                  </div>
+                </label>
+                <span class="optimizer-subnote" id="wfModeNote">Starts when every selected ETF has full lookback history.</span>
+              </div>
+              <div class="wf-bench-checks" style="grid-column:1/-1">
+                <span style="color:#6b7280;font-weight:600">Benchmarks:</span>
+                <label><input type="checkbox" id="wfBenchEwAnnual" checked onchange="onWfBenchChange()"> Equal weight, annual rebalance</label>
+                <label><input type="checkbox" id="wfBenchEwBh" checked onchange="onWfBenchChange()"> Equal weight, buy &amp; hold</label>
+                <label><input type="checkbox" id="wfBenchMomentum" checked onchange="onWfBenchChange()"> Momentum (prior-year winner)</label>
+                <label><input type="checkbox" id="wfBenchHindsight" checked onchange="onWfBenchChange()"> Static optimum (hindsight &mdash; not investable)</label>
+              </div>
+              <div class="run-row">
+                <button class="run-btn" id="wfRunBtn" onclick="runWalkForward()">Run Walk-Forward</button>
+                <button class="clear-btn" type="button" onclick="clearWalkforwardAnalysis()">Clear</button>
+              </div>
+              <div class="opt-status" id="wfStatus">Re-optimizes each January on the trailing 60 months, holds 12 months out-of-sample.</div>
+              <div class="progress-bar" id="wfProgressBar"><div class="progress-fill" id="wfProgressFill" style="width:0%"></div></div>
+            </div>
+          </section>
+
+          <section class="panel chart-panel wf-panel collapsed" id="wfPanel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-eyebrow">Walk-Forward Output</div>
+                <div class="panel-title">Strategy vs Benchmarks</div>
+              </div>
+            </div>
+            <div id="wfResults" class="wf-results" style="display:none">
+              <div class="chart-wrap chart-wrap-compact wf-chart-wrap">
+                <div class="wf-chart-toolbar">
+                  <div class="subpanel-title">Equity Curves &mdash; $100K invested at <span id="wfEvalStartLabel"></span></div>
+                  <div class="toggle-group-controls">
+                    <button class="toggle-btn active" type="button" id="wfScaleLinear" onclick="setWfLogScale(false,this)">Linear</button>
+                    <button class="toggle-btn" type="button" id="wfScaleLog" onclick="setWfLogScale(true,this)">Log</button>
+                  </div>
+                </div>
+                <canvas id="wfEquityChart" height="320"></canvas>
+              </div>
+              <div class="table-wrap" style="margin-bottom:0">
+                <div class="table-title">Strategy Summary <span class="table-title-note" id="wfTurnoverNote"></span></div>
+                <div class="scroll"><table>
+                  <thead><tr>
+                    <th class="left">Strategy</th><th class="right">CAGR</th><th class="right">Max Drawdown</th>
+                    <th class="right">Score</th><th class="right">Final Value</th>
+                  </tr></thead>
+                  <tbody id="wfSummaryBody"></tbody>
+                </table></div>
+              </div>
+              <div class="table-wrap" style="margin-bottom:0">
+                <div class="table-title">Walk-Forward Steps<span class="table-title-note">(each allocation is optimized on the training window, then held out-of-sample)</span></div>
+                <div class="scroll"><table>
+                  <thead><tr>
+                    <th class="left">Hold Year</th><th class="left">Training Window</th><th class="right">Universe</th>
+                    <th class="left">Chosen Allocation</th><th class="right">Hold Return</th><th class="right">Running Value</th>
+                  </tr></thead>
+                  <tbody id="wfStepsBody"></tbody>
+                </table></div>
+              </div>
+            </div>
+            <div id="wfEmptyState" class="opt-empty">Run the walk-forward simulation to populate this workspace.</div>
           </section>
         </div>
       </section>
@@ -1657,6 +1851,8 @@ const COLORS  = {
 // Only entries needed for tickers with gaps; others are fully available from Jan 2004.
 const ETF_INCEPTION = {
   SCHD: { year: 2011, month: 10 }, // Oct 2011
+  VPU:  { year: 2004, month: 2 },  // Feb 2004 — Jan 2004 return is null
+  VGT:  { year: 2004, month: 2 },  // Feb 2004 — Jan 2004 return is null
 };
 const DATA_START_YEAR = 2004;
 const DATA_START_MONTH = 1;
@@ -1669,6 +1865,7 @@ const BUNDLED_FETCHED_AT = "2026-04";
 const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const WINDOW_MONTHS = 60; // 5 years
 const ROLLING_START_YEAR = 2012; // first rolling window starts Jan 2012, independent of DATA_START_YEAR
+const WF_HOLD_MONTHS = 12; // walk-forward hold period per step — parameterized for future quarterly support
 
 // Runtime variables — set by initData() from the active DataService
 let DATA_END_YEAR, DATA_END_MONTH, NUM_MONTHS;
@@ -1962,8 +2159,13 @@ let rwAllocChart  = null;
 let rwPerfChart   = null;
 let rollingResultsData = null;
 let rollingPreviewState = null;
+let wfEquityChart = null;
+let wfResultsData = null;
+let wfUniverseMode = "fixed";
+let wfLogScale = false;
 let optimizerCleared = false;
 let rollingCleared   = false;
+let wfCleared        = false;
 let portfolioScoreBasis = null;
 const PANE_STORAGE_KEY = "etf-optimizer-right-rail-width";
 const DESKTOP_PANE_BREAKPOINT = 1400;
@@ -1992,7 +2194,7 @@ function getPaneWidthBounds(){
   return {min, max};
 }
 function resizeInteractiveCharts(){
-  [mainChart, frontierChart, rwAllocChart, rwPerfChart].forEach(chart => {
+  [mainChart, frontierChart, rwAllocChart, rwPerfChart, wfEquityChart].forEach(chart => {
     if(chart) chart.resize();
   });
 }
@@ -2250,6 +2452,18 @@ function buildRollingPreviewMarkup(preview){
 function renderPreviewPanel(){
   const inner = document.getElementById("optResultInner");
   if(!inner) return;
+  if(activeAnalysisTab === "walkforward"){
+    setAnalysisPreviewHeading("Walk-Forward", "Analysis Preview");
+    if(wfResultsData){
+      const lastStep = wfResultsData.steps[wfResultsData.steps.length - 1];
+      previewAlloc = lastStep.alloc;
+      inner.innerHTML = buildWfPreviewMarkup(wfResultsData);
+    } else {
+      previewAlloc = null;
+      inner.innerHTML = `<div class="opt-empty">Run the walk-forward simulation to see results</div>`;
+    }
+    return;
+  }
   if(activeAnalysisTab === "rolling"){
     setAnalysisPreviewHeading("Rolling Window", "Analysis Preview");
     if(rollingPreviewState){
@@ -2617,8 +2831,7 @@ function update(){
       c.onclick = isAvailable ? () => {
         dateDeselectedTickers.delete(t);
         selectedTickers.add(t);
-        weights = buildEqualWeights(getSelectedTickers());
-        update();
+        applySelectionChange();
       } : null;
     } else {
       c.className = `card ${isSelected ? "selected" : "unselected"}${isLocked ? " locked" : ""}`;
@@ -2801,6 +3014,16 @@ function renderMainChart(growthRows, annualRows, active){
   }
 }
 
+// Shared cleanup for any universe change: cached analysis runs were computed
+// for the old selection, so reset weights and clear them before re-rendering.
+function applySelectionChange(){
+  weights = buildEqualWeights(getSelectedTickers());
+  clearOptimizerPreview("Selection changed. Run the optimizer to see results.");
+  clearRollingResults();
+  clearWalkforwardResults();
+  update();
+}
+
 function toggleTickerSelection(ticker){
   const activeTickers = getSelectedTickers();
   if(selectedTickers.has(ticker)){
@@ -2809,10 +3032,7 @@ function toggleTickerSelection(ticker){
   } else {
     selectedTickers.add(ticker);
   }
-  weights = buildEqualWeights(getSelectedTickers());
-  clearOptimizerPreview("Selection changed. Run the optimizer to see results.");
-  clearRollingResults();
-  update();
+  applySelectionChange();
 }
 
 function updateOptimizerControls(activeTickers){
@@ -2854,6 +3074,23 @@ function updateOptimizerControls(activeTickers){
     rwRunBtn.disabled = false;
     rwStatus.textContent = `Rolling universe: ${rollingTickers.join(", ")}.`;
   }
+
+  const wfRunBtn = document.getElementById("wfRunBtn");
+  const wfStatus = document.getElementById("wfStatus");
+  const wfMaxUnits = +document.getElementById("wfMaxTickerSlider").value;
+  const wfLookbackLen = +document.getElementById("wfLookback").value;
+  if(activeTickers.length < 2){
+    wfRunBtn.disabled = true;
+    wfStatus.textContent = "Walk-forward needs at least 2 selected ETFs.";
+  } else if(!hasFeasibleCap(activeTickers, wfMaxUnits)){
+    // In dynamic mode the eligible universe only grows toward the full selection,
+    // so an infeasible cap for the selection is infeasible for every step.
+    wfRunBtn.disabled = true;
+    wfStatus.textContent = `Max ${wfMaxUnits}% / ticker needs at least ${Math.ceil(100 / wfMaxUnits)} selected ETFs.`;
+  } else {
+    wfRunBtn.disabled = false;
+    if(!wfResultsData) wfStatus.textContent = `Re-optimizes each January on the trailing ${wfLookbackLen} months, holds 12 months out-of-sample.`;
+  }
 }
 
 function switchTab(tab, btn){
@@ -2868,7 +3105,8 @@ function switchAnalysisTab(tab, btn){
   btn.parentElement.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
   document.querySelectorAll(".analysis-pane").forEach(panel => panel.classList.remove("active"));
-  document.getElementById(`analysisPane${tab === "optimizer" ? "Optimizer" : "Rolling"}`).classList.add("active");
+  const paneSuffix = {optimizer:"Optimizer", rolling:"Rolling", walkforward:"Walkforward"}[tab];
+  document.getElementById(`analysisPane${paneSuffix}`).classList.add("active");
   renderPreviewPanel();
   requestAnimationFrame(resizeInteractiveCharts);
 }
@@ -3388,6 +3626,479 @@ function renderRwTable(results){
 }
 
 // ══════════════════════════════════════════════════
+// WALK-FORWARD SIMULATOR (train on trailing window, hold out-of-sample, repeat)
+// ══════════════════════════════════════════════════
+const WF_BENCH_CHECKBOX = {
+  ewAnnual:  "wfBenchEwAnnual",
+  ewBh:      "wfBenchEwBh",
+  momentum:  "wfBenchMomentum",
+  hindsight: "wfBenchHindsight",
+};
+function wfBenchEnabled(key){
+  return document.getElementById(WF_BENCH_CHECKBOX[key]).checked;
+}
+
+function onWfSliderChange(){
+  wfCleared = false;
+  const w = +document.getElementById("wfRiskSlider").value;
+  document.getElementById("wfSliderVal").textContent = w === 0 ? "Max Return (w=0)" : w === 2 ? "Min Drawdown (w=2)" : `Balanced (w=${w.toFixed(1)})`;
+  if(wfResultsData){
+    preserveScrollDuring(() => clearWalkforwardResults());
+  }
+  updateOptimizerControls(getSelectedTickers());
+}
+
+function onWfMaxTickerChange(){
+  wfCleared = false;
+  const v = +document.getElementById("wfMaxTickerSlider").value;
+  document.getElementById("wfMaxTickerVal").textContent = v >= 100 ? "No Limit" : `Max ${v}% / ticker`;
+  if(wfResultsData){
+    preserveScrollDuring(() => clearWalkforwardResults());
+  }
+  updateOptimizerControls(getSelectedTickers());
+}
+
+function onWfLookbackChange(){
+  wfCleared = false;
+  if(wfResultsData){
+    preserveScrollDuring(() => clearWalkforwardResults());
+  }
+  updateOptimizerControls(getSelectedTickers());
+}
+
+function setWfUniverseMode(mode, btn){
+  wfUniverseMode = mode;
+  [document.getElementById("wfModeFixed"), document.getElementById("wfModeDynamic")].forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("wfModeNote").textContent = mode === "fixed"
+    ? "Starts when every selected ETF has full lookback history."
+    : "Starts earlier; ETFs join the universe as their history matures.";
+  if(wfResultsData){
+    preserveScrollDuring(() => clearWalkforwardResults());
+  }
+  updateOptimizerControls(getSelectedTickers());
+}
+
+// Benchmarks are all computed at run time; checkboxes only toggle their display.
+function onWfBenchChange(){
+  if(wfResultsData){
+    preserveScrollDuring(() => renderWFResults(wfResultsData));
+  }
+}
+
+function setWfLogScale(isLog, btn){
+  wfLogScale = isLog;
+  [document.getElementById("wfScaleLinear"), document.getElementById("wfScaleLog")].forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  if(wfResultsData) renderWfEquityChart(wfResultsData);
+}
+
+/**
+ * First January eval anchor for the walk-forward run, per universe mode.
+ * Fixed: first January where EVERY selected ticker has the full lookback of history.
+ * Dynamic: first January with >=2 eligible tickers and a feasible cap whose eligible
+ * set is stable through the hold year — a mid-year joiner rounds the anchor forward
+ * to the next January so each step's universe is fixed for its whole hold window
+ * (e.g. without SCHD, Feb 2009 is the first feasible month; we anchor at Jan 2010).
+ */
+function wfComputeEvalStart(selected, lookback, mode, maxUnits){
+  const firstJan = Math.ceil(lookback / 12) * 12;
+  for(let evalIdx = firstJan; evalIdx < NUM_MONTHS; evalIdx += 12){
+    const eligible = selected.filter(t => tickerAvailableAt(t, evalIdx - lookback));
+    if(mode === "fixed"){
+      if(eligible.length === selected.length) return evalIdx;
+      continue;
+    }
+    if(eligible.length < 2 || !hasFeasibleCap(eligible, maxUnits)) continue;
+    const lastHeldIdx = Math.min(evalIdx + WF_HOLD_MONTHS - 1, NUM_MONTHS - 1);
+    const eligibleAtYearEnd = selected.filter(t => tickerAvailableAt(t, lastHeldIdx - lookback));
+    if(eligibleAtYearEnd.length !== eligible.length) continue;
+    return evalIdx;
+  }
+  return null;
+}
+
+function wfPathStats(path){
+  const n = path.length - 1;
+  let peak = path[0], maxDD = 0;
+  for(let i = 1; i <= n; i++){
+    if(path[i] > peak) peak = path[i];
+    const dd = (peak - path[i]) / peak * 100;
+    if(dd > maxDD) maxDD = dd;
+  }
+  return {cagr: (Math.pow(path[n] / path[0], 12 / n) - 1) * 100, dd: maxDD, finalVal: path[n] * TOTAL_PORTFOLIO};
+}
+
+// Chain per-step allocations into one monthly equity curve (buy & hold within each step).
+function wfChainedPath(steps, evalStart, allocFor){
+  const n = NUM_MONTHS - evalStart;
+  const path = new Float64Array(n + 1); path[0] = 1;
+  steps.forEach((st, k) => {
+    const alloc = allocFor(st, k);
+    const offset = st.holdStart - evalStart;
+    const base = path[offset];
+    for(let m = 1; m <= st.holdMonths; m++){
+      let v = 0;
+      for(const t of TICKERS){
+        const wgt = alloc[t] || 0;
+        if(wgt) v += wgt / 100 * CUM[t][st.holdStart + m] / CUM[t][st.holdStart];
+      }
+      path[offset + m] = base * v;
+    }
+  });
+  return path;
+}
+
+// Single buy & hold over the whole eval span (weights drift, never rebalanced).
+function wfBuyHoldPath(alloc, evalStart){
+  const n = NUM_MONTHS - evalStart;
+  const path = new Float64Array(n + 1); path[0] = 1;
+  for(let m = 1; m <= n; m++){
+    let v = 0;
+    for(const t of TICKERS){
+      const wgt = alloc[t] || 0;
+      if(wgt) v += wgt / 100 * CUM[t][evalStart + m] / CUM[t][evalStart];
+    }
+    path[m] = v;
+  }
+  return path;
+}
+
+function wfComputeBenchmarks(steps, evalStart, w, maxUnits, selected){
+  const n = NUM_MONTHS - evalStart;
+  const finish = (key, label, color, path, dash) => {
+    const stats = wfPathStats(path);
+    return {key, label, color, dash, path, ...stats, score: scoreFunc(stats.cagr, stats.dd, w)};
+  };
+  const benchmarks = [];
+
+  benchmarks.push(finish("ewAnnual", "Equal weight, annual rebalance", "#60a5fa",
+    wfChainedPath(steps, evalStart, st => buildEqualWeights(st.eligible))));
+
+  benchmarks.push(finish("ewBh", "Equal weight, buy & hold", "#94a3b8",
+    wfBuyHoldPath(buildEqualWeights(steps[0].eligible), evalStart)));
+
+  benchmarks.push(finish("momentum", "Momentum (prior-year winner)", "#f59e0b",
+    wfChainedPath(steps, evalStart, st => {
+      let winner = null, bestRatio = -Infinity;
+      for(const t of st.eligible){
+        const ratio = CUM[t][st.holdStart] / CUM[t][st.holdStart - 12];
+        if(ratio > bestRatio){ bestRatio = ratio; winner = t; }
+      }
+      return {[winner]: 100};
+    })));
+
+  // Hindsight optimum: one optimization over the full eval span, held buy & hold.
+  // Universe = tickers with data over the whole span (excludes dynamic-mode late joiners).
+  const hindUniverse = selected.filter(t => tickerAvailableAt(t, evalStart));
+  let bestSeed = null, bestScore = -Infinity;
+  for(let s = 0; s < 800; s++){
+    const alloc = randomPortfolio(hindUniverse, maxUnits);
+    const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, hindUniverse), evalStart, n, hindUniverse);
+    const sc = scoreFunc(cagr, dd, w);
+    if(sc > bestScore){ bestScore = sc; bestSeed = alloc; }
+  }
+  const hindAlloc = hillClimb(bestSeed, evalStart, w, n, hindUniverse, 5000, maxUnits).alloc;
+  benchmarks.push(finish("hindsight", "Static optimum (hindsight — not investable)", "#a855f7",
+    wfBuyHoldPath(hindAlloc, evalStart), [6, 3]));
+
+  return benchmarks;
+}
+
+function wfUniverseMarkers(steps){
+  const markers = [];
+  for(let k = 1; k < steps.length; k++){
+    const prev = steps[k - 1].eligible, cur = steps[k].eligible;
+    if(cur.length > prev.length){
+      const joins = cur.filter(t => !prev.includes(t));
+      markers.push({monthIdx: steps[k].holdStart, label: `${joins.join(", ")} enter${joins.length === 1 ? "s" : ""} universe`});
+    }
+  }
+  return markers;
+}
+
+async function runWalkForward(){
+  wfCleared = false;
+  const selected = getSelectedTickers();
+  if(selected.length < 2) return;
+  const w = +document.getElementById("wfRiskSlider").value;
+  const lookback = +document.getElementById("wfLookback").value;
+  const maxUnits = +document.getElementById("wfMaxTickerSlider").value;
+  const mode = wfUniverseMode;
+  const btn = document.getElementById("wfRunBtn");
+  const fill = document.getElementById("wfProgressFill");
+  const status = document.getElementById("wfStatus");
+  document.getElementById("wfProgressBar").style.display = "block";
+  btn.disabled = true; fill.style.width = "0%";
+
+  if(!hasFeasibleCap(selected, maxUnits)){
+    status.textContent = `Max ${maxUnits}% / ticker needs at least ${Math.ceil(100 / maxUnits)} selected ETFs.`;
+    btn.disabled = false;
+    document.getElementById("wfProgressBar").style.display = "none";
+    return;
+  }
+
+  const evalStart = wfComputeEvalStart(selected, lookback, mode, maxUnits);
+  if(evalStart === null || evalStart >= NUM_MONTHS){
+    status.textContent = "Not enough history for that lookback and universe — no viable start year.";
+    btn.disabled = false;
+    document.getElementById("wfProgressBar").style.display = "none";
+    return;
+  }
+
+  const steps = [];
+  for(let h = evalStart; h < NUM_MONTHS; h += WF_HOLD_MONTHS){
+    const trainStart = h - lookback;
+    steps.push({
+      trainStart,
+      holdStart: h,
+      holdMonths: Math.min(WF_HOLD_MONTHS, NUM_MONTHS - h),
+      eligible: mode === "fixed" ? selected : selected.filter(t => tickerAvailableAt(t, trainStart)),
+    });
+  }
+
+  const totalMonths = NUM_MONTHS - evalStart;
+  const path = new Float64Array(totalMonths + 1); path[0] = 1;
+  const SAMPLES_PER = 800;
+  let turnoverSum = 0, turnoverCount = 0, prevAlloc = null;
+  for(let k = 0; k < steps.length; k++){
+    const st = steps[k];
+    const holdYear = monthYearParts(st.holdStart).year;
+    status.textContent = `Step ${k + 1}/${steps.length}: optimizing for ${holdYear}…`;
+    fill.style.width = ((k / (steps.length + 1)) * 90) + "%";
+    await tick();
+
+    let bestSeed = null, bestScore = -Infinity;
+    for(let s = 0; s < SAMPLES_PER; s++){
+      const alloc = randomPortfolio(st.eligible, maxUnits);
+      const {cagr, dd} = calcPortfolio(portfolioFromWeights(alloc, st.eligible), st.trainStart, lookback, st.eligible);
+      const sc = scoreFunc(cagr, dd, w);
+      if(sc > bestScore){ bestScore = sc; bestSeed = alloc; }
+    }
+    st.alloc = hillClimb(bestSeed, st.trainStart, w, lookback, st.eligible, 5000, maxUnits).alloc;
+
+    if(prevAlloc){
+      turnoverSum += TICKERS.reduce((s, t) => s + Math.abs((st.alloc[t] || 0) - (prevAlloc[t] || 0)), 0) / 2;
+      turnoverCount++;
+    }
+    prevAlloc = st.alloc;
+
+    const offset = st.holdStart - evalStart;
+    const base = path[offset];
+    for(let m = 1; m <= st.holdMonths; m++){
+      let v = 0;
+      for(const t of st.eligible) v += (st.alloc[t] || 0) / 100 * CUM[t][st.holdStart + m] / CUM[t][st.holdStart];
+      path[offset + m] = base * v;
+    }
+    st.holdReturn = (path[offset + st.holdMonths] / base - 1) * 100;
+    st.runningVal = path[offset + st.holdMonths];
+  }
+
+  status.textContent = "Computing benchmarks…";
+  fill.style.width = "92%";
+  await tick();
+  const benchmarks = wfComputeBenchmarks(steps, evalStart, w, maxUnits, selected);
+
+  wfResultsData = {
+    evalStart, mode, lookback, w, maxUnits, steps, path,
+    stats: wfPathStats(path),
+    turnover: turnoverCount ? turnoverSum / turnoverCount : 0,
+    benchmarks,
+    markers: wfUniverseMarkers(steps),
+  };
+
+  fill.style.width = "100%";
+  btn.disabled = false;
+  const startParts = monthYearParts(evalStart);
+  status.textContent = `Done — ${steps.length} annual steps from ${formatMonthYear(startParts.year, startParts.month)}. Optimizer is stochastic — results vary slightly per run.`;
+  setTimeout(() => {document.getElementById("wfProgressBar").style.display = "none"; fill.style.width = "0%";}, 700);
+
+  renderWFResults(wfResultsData);
+  if(activeAnalysisTab === "walkforward") renderPreviewPanel();
+}
+
+// Draws dashed vertical lines where the dynamic universe grows (e.g. "SCHD enters universe").
+const wfMarkerPlugin = {
+  id: "wfMarkers",
+  afterDatasetsDraw(chart, args, opts){
+    const markers = (opts && opts.markers) || [];
+    if(!markers.length) return;
+    const {ctx, chartArea, scales} = chart;
+    ctx.save();
+    ctx.font = "10px sans-serif";
+    markers.forEach(mk => {
+      const px = scales.x.getPixelForValue(mk.index);
+      if(!isFinite(px) || px < chartArea.left || px > chartArea.right) return;
+      ctx.strokeStyle = "rgba(148,163,184,0.6)";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(px, chartArea.top); ctx.lineTo(px, chartArea.bottom); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#94a3b8";
+      ctx.textAlign = "left";
+      ctx.fillText(mk.label, px + 4, chartArea.top + 10);
+    });
+    ctx.restore();
+  }
+};
+
+function renderWfEquityChart(data){
+  const ctx = document.getElementById("wfEquityChart").getContext("2d");
+  if(wfEquityChart){ wfEquityChart.destroy(); wfEquityChart = null; }
+  const n = data.path.length - 1;
+  const labels = ["Start"];
+  for(let m = 1; m <= n; m++) labels.push(monthLabel(data.evalStart + m - 1));
+  const datasets = [{
+    label: "Walk-forward strategy",
+    data: Array.from(data.path, v => v * TOTAL_PORTFOLIO),
+    borderColor: "#fff", backgroundColor: "transparent", borderWidth: 2, pointRadius: 0, tension: 0.3,
+  }];
+  data.benchmarks.forEach(b => {
+    if(!wfBenchEnabled(b.key)) return;
+    datasets.push({
+      label: b.label,
+      data: Array.from(b.path, v => v * TOTAL_PORTFOLIO),
+      borderColor: b.color, backgroundColor: "transparent", borderWidth: 1.5, pointRadius: 0, tension: 0.3,
+      borderDash: b.dash || undefined,
+    });
+  });
+  wfEquityChart = new Chart(ctx, {type: "line",
+    data: {labels, datasets},
+    plugins: [wfMarkerPlugin],
+    options: {responsive: true, maintainAspectRatio: false, interaction: {mode: "index", intersect: false},
+      plugins: {
+        wfMarkers: {markers: data.markers.map(mk => ({index: mk.monthIdx - data.evalStart + 1, label: mk.label}))},
+        legend: {labels: {color: "#9ca3af", boxWidth: 12, font: {size: 11}}},
+        tooltip: {
+          position: "cursor",
+          backgroundColor: "#111827", borderColor: "#374151", borderWidth: 1,
+          titleColor: "#d1d5db", bodyColor: "#fff",
+          callbacks: {
+            label: c => ` ${c.dataset.label}: ${fmtK(c.parsed.y)}`,
+            labelColor: c => ({borderColor: c.dataset.borderColor, backgroundColor: c.dataset.borderColor, borderWidth: 1}),
+          },
+        },
+      },
+      scales: {
+        x: {ticks: {color: "#6b7280", font: {size: 10}, maxTicksLimit: 15, maxRotation: 45}, grid: {color: "#1f2937"}},
+        y: {type: wfLogScale ? "logarithmic" : "linear", ticks: {color: "#6b7280", font: {size: 11}, callback: fmtK}, grid: {color: "#1f2937"}},
+      }}
+  });
+}
+
+function renderWfSummary(data){
+  const rows = [{
+    label: "Walk-forward strategy", color: "#fff", isStrategy: true,
+    cagr: data.stats.cagr, dd: data.stats.dd,
+    score: scoreFunc(data.stats.cagr, data.stats.dd, data.w), finalVal: data.stats.finalVal,
+  }];
+  data.benchmarks.forEach(b => {
+    if(!wfBenchEnabled(b.key)) return;
+    rows.push({label: b.label, color: b.color, cagr: b.cagr, dd: b.dd, score: b.score, finalVal: b.finalVal});
+  });
+  rows.sort((a, b) => b.score - a.score);
+  document.getElementById("wfSummaryBody").innerHTML = rows.map(r => `
+    <tr${r.isStrategy ? ' class="portfolio-row"' : ""}>
+      <td class="left" style="color:${r.color};font-weight:${r.isStrategy ? 700 : 600}">${r.label}</td>
+      <td class="right green">${fmtP(r.cagr)}</td>
+      <td class="right red">-${fmtP(r.dd)}</td>
+      <td class="right blue">${r.score.toFixed(2)}</td>
+      <td class="right mono">${fmtK(r.finalVal)}</td>
+    </tr>`).join("");
+  document.getElementById("wfTurnoverNote").textContent =
+    `(sorted by score · avg one-way turnover per rebalance: ${data.turnover.toFixed(0)}%)`;
+}
+
+function wfAllocCompact(alloc){
+  return TICKERS.filter(t => (alloc[t] || 0) > 0)
+    .sort((a, b) => (alloc[b] || 0) - (alloc[a] || 0))
+    .map(t => `<span style="color:${COLORS[t]};font-weight:600">${t}</span> ${alloc[t]}`)
+    .join(" / ");
+}
+
+function renderWfSteps(data){
+  document.getElementById("wfStepsBody").innerHTML = data.steps.map(st => {
+    const holdYear = monthYearParts(st.holdStart).year;
+    const partial = st.holdMonths < WF_HOLD_MONTHS ? " (partial)" : "";
+    const trainFrom = monthYearParts(st.trainStart);
+    const trainTo = monthYearParts(st.trainStart + data.lookback - 1);
+    return `<tr>
+      <td class="left mono" style="font-weight:600">${holdYear}${partial}</td>
+      <td class="left muted" style="font-size:11px">${formatMonthYear(trainFrom.year, trainFrom.month)}–${formatMonthYear(trainTo.year, trainTo.month)}</td>
+      <td class="right mono">${st.eligible.length}</td>
+      <td class="left mono" style="font-size:11px">${wfAllocCompact(st.alloc)}</td>
+      <td class="right mono ${st.holdReturn >= 0 ? "green" : "red"}">${fmtP(st.holdReturn, true)}</td>
+      <td class="right mono">${fmtK(st.runningVal * TOTAL_PORTFOLIO)}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderWFResults(data){
+  setWfPanelExpanded(true);
+  document.getElementById("wfResults").style.display = "flex";
+  document.getElementById("wfEmptyState").style.display = "none";
+  const startParts = monthYearParts(data.evalStart);
+  document.getElementById("wfEvalStartLabel").textContent = formatMonthYear(startParts.year, startParts.month);
+  renderWfEquityChart(data);
+  renderWfSummary(data);
+  renderWfSteps(data);
+}
+
+function buildWfPreviewMarkup(data){
+  const lastStep = data.steps[data.steps.length - 1];
+  const holdYear = monthYearParts(lastStep.holdStart).year;
+  const startParts = monthYearParts(data.evalStart);
+  return `
+    <div style="color:#6b7280;font-size:11px;margin-bottom:12px">Walk-forward strategy since ${formatMonthYear(startParts.year, startParts.month)} — latest allocation (${holdYear} step)</div>
+    <div class="opt-metrics">
+      <div class="opt-metric"><div class="opt-metric-label">CAGR</div><div class="opt-metric-val green">${fmtP(data.stats.cagr)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Max Drawdown</div><div class="opt-metric-val red">-${fmtP(data.stats.dd)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Score (CAGR/DD^w)</div><div class="opt-metric-val blue">${scoreFunc(data.stats.cagr, data.stats.dd, data.w).toFixed(2)}</div></div>
+      <div class="opt-metric"><div class="opt-metric-label">Final Value</div><div class="opt-metric-val">${fmtK(data.stats.finalVal)}</div></div>
+    </div>
+    <div style="margin-bottom:4px">${buildAllocationRows(lastStep.alloc, lastStep.eligible)}</div>
+    <button class="apply-btn" onclick="applyOptimal()">Apply Latest Allocation ↑</button>`;
+}
+
+function setWfPanelExpanded(expanded){
+  const panel = document.getElementById("wfPanel");
+  if(!panel) return;
+  panel.classList.toggle("collapsed", !expanded);
+}
+
+function clearWalkforwardResults(){
+  wfCleared = true;
+  wfResultsData = null;
+  if(wfEquityChart){ wfEquityChart.destroy(); wfEquityChart = null; }
+  document.getElementById("wfSummaryBody").innerHTML = "";
+  document.getElementById("wfStepsBody").innerHTML = "";
+  document.getElementById("wfTurnoverNote").textContent = "";
+  document.getElementById("wfResults").style.display = "none";
+  document.getElementById("wfEmptyState").style.display = "block";
+  setWfPanelExpanded(false);
+  if(activeAnalysisTab === "walkforward") renderPreviewPanel();
+}
+
+function resetWalkforwardControls(){
+  document.getElementById("wfRiskSlider").value = "1";
+  document.getElementById("wfMaxTickerSlider").value = "100";
+  document.getElementById("wfLookback").value = "60";
+  Object.values(WF_BENCH_CHECKBOX).forEach(id => { document.getElementById(id).checked = true; });
+  setWfUniverseMode("fixed", document.getElementById("wfModeFixed"));
+  onWfSliderChange();
+  onWfMaxTickerChange();
+}
+
+function clearWalkforwardAnalysis(){
+  resetWalkforwardControls();
+  const btn = document.getElementById("wfRunBtn");
+  const fill = document.getElementById("wfProgressFill");
+  btn.disabled = false;
+  fill.style.width = "0%";
+  document.getElementById("wfProgressBar").style.display = "none";
+  clearWalkforwardResults();
+}
+
+// ══════════════════════════════════════════════════
 // DATA INIT
 // ══════════════════════════════════════════════════
 
@@ -3530,6 +4241,7 @@ async function onRefreshData() {
     setDataStatusUI(fetchedAt, true);
     clearOptimizerPreview('Data refreshed. Run the optimizer to see results.');
     clearOptimizerRun();
+    clearWalkforwardResults(); // step count derives from NUM_MONTHS, so cached runs are stale
     update();
 
     if (errors.length && label) {
@@ -3645,8 +4357,11 @@ async function onValidateData() {
   onMaxTickerChange();
   onRwSliderChange();
   onRwMaxTickerChange();
+  onWfSliderChange();
+  onWfMaxTickerChange();
   initPaneResizer();
   setRollingPanelExpanded(false);
+  setWfPanelExpanded(false);
   clearOptimizerPreview();
   enforceInceptionConstraints(); // deselect any ETFs that precede the default start date
   update();

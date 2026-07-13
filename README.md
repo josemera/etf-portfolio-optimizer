@@ -1,6 +1,6 @@
 # Portfolio Backtest & Optimizer
 
-A self-contained browser tool for backtesting ETF portfolios, selecting an ETF universe visually, exploring the efficient frontier, and running rolling-window optimization across historical market regimes. No server required; open the HTML file locally and everything runs in-browser off the bundled data (an optional local server enables live Yahoo Finance refresh — see [Running the Tool](#running-the-tool)).
+A self-contained browser tool for backtesting ETF portfolios, selecting an ETF universe visually, exploring the efficient frontier, running rolling-window optimization across historical market regimes, and walk-forward testing the optimizer out-of-sample. No server required; open the HTML file locally and everything runs in-browser off the bundled data (an optional local server enables live Yahoo Finance refresh — see [Running the Tool](#running-the-tool)).
 
 ---
 
@@ -21,7 +21,7 @@ A self-contained browser tool for backtesting ETF portfolios, selecting an ETF u
 
 The app's bundled monthly total return data covers **Jan 2004-Apr 2026** (268 months per ETF).
 
-**Not every ETF has data for the full range.** Most of the universe has complete Yahoo Finance history from Jan 2004, but SCHD's first data month is **Oct 2011** — its earlier months are stored as null and treated as unavailable. When the selected backtest start date predates an ETF's first data month, the app automatically deselects that ETF (its card turns amber); it becomes selectable again once the start date moves past its inception. The default backtest start is **Jan 2012**, at which point all 10 ETFs are available.
+**Not every ETF has data for the full range.** Most of the universe has complete Yahoo Finance history from Jan 2004, but SCHD's first data month is **Oct 2011**, and VPU and VGT's first monthly return is **Feb 2004** — earlier months are stored as null and treated as unavailable. When the selected backtest start date predates an ETF's first data month, the app automatically deselects that ETF (its card turns amber); it becomes selectable again once the start date moves past its inception. The default backtest start is **Jan 2012**, at which point all 10 ETFs are available.
 
 ---
 
@@ -29,7 +29,7 @@ The app's bundled monthly total return data covers **Jan 2004-Apr 2026** (268 mo
 
 ### 1. Build the ETF Universe
 
-1. Set the **Start Month/Year** for the backtest period (selectable back to Jan 2004; defaults to Jan 2012). Starting before Oct 2011 auto-deselects SCHD, which has no earlier data.
+1. Set the **Start Month/Year** for the backtest period (selectable back to Jan 2004; defaults to Jan 2012). Starting before Oct 2011 auto-deselects SCHD, which has no earlier data; starting at Jan 2004 also auto-deselects VPU and VGT, whose first monthly return is Feb 2004.
 2. Click ETF cards to **select or deselect** the universe you want the backtest and optimizer to use.
 3. At least **2 ETFs must remain selected**. Deselecting below that is blocked.
 4. Any selection change resets the portfolio to **equal weights** across the selected ETFs.
@@ -142,13 +142,34 @@ Outputs:
 - **CAGR vs Max Drawdown chart**
 - **Full rolling table** — window allocations, CAGR, max drawdown, score, and averages
 
+### 6. Run the Walk-Forward Simulation
+
+The rolling tab describes per-window optima after the fact; the **Walk-Forward** tab answers the question it cannot: *if you had actually rebalanced into the optimizer's output each year, what would have happened?* Each January it optimizes on the trailing **lookback window** (36/48/60 months, default 60), holds that allocation out-of-sample for the next 12 months, then re-optimizes — chaining the hold periods into one live equity curve.
+
+Controls:
+
+- **Risk slider `w`** and **Max Allocation / Ticker** — same semantics as the other optimizers
+- **Lookback Window** — training length per step
+- **Universe Mode**:
+  - **Fixed** (default) — the simulation starts at the first January where **every** selected ETF has full lookback history (all 10 selected with a 60-month lookback → Jan 2017). The universe is constant across the curve, so results are directly comparable.
+  - **Dynamic** — starts earlier, at the first January where **at least 2** selected ETFs have full lookback history; ETFs join the universe as their history matures (flagged with a vertical "enters universe" marker on the chart and a per-step universe count in the table). If another ETF's history would mature mid-hold-year, the start is rounded forward to the next January so each step's universe is stable (e.g. with SCHD deselected and a 60-month lookback, Feb 2009 is the first feasible month; the run anchors at Jan 2010).
+- **Benchmarks** (all on by default; checkboxes only toggle display):
+  - **Equal weight, annual rebalance** — reset to equal weights at each step
+  - **Equal weight, buy & hold** — set once at the start, never rebalanced
+  - **Momentum** — 100% in the prior calendar year's best-performing eligible ETF, rotated annually
+  - **Static optimum (hindsight — not investable)** — a single optimization over the full evaluation span held buy & hold; an upper reference, not a strategy
+
+Outputs: the equity-curve chart (linear/log toggle, $100K normalized), a summary table (CAGR, max drawdown, score, final value — sorted by score) with the **average one-way turnover per rebalance**, and a per-step table showing each year's training window, eligible universe size, chosen allocation, hold-period return, and running value. The final year is truncated at the last data month and labeled *(partial)*.
+
+**Expect the walk-forward strategy to land below equal weight.** On the bundled data (Jan 2017–Apr 2026, `w=1`, 60-month lookback) walk-forward re-optimization scores ≈ 0.55 versus ≈ 0.77 for annually rebalanced equal weight, while the naive momentum rotation scores ≈ 1.77. That is the point of the tab: the optimizer describes the past; it does not predict. The optimizer is stochastic, so results vary slightly between runs.
+
 ---
 
 ## Notes
 
 ### Return Data
 
-Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. The bundled dataset contains **268 monthly points per ETF** (Jan 2004-Apr 2026); months before an ETF's inception (currently only SCHD, first data Oct 2011) are stored as null.
+Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. The bundled dataset contains **268 monthly points per ETF** (Jan 2004-Apr 2026); months before an ETF's first data month (SCHD from Oct 2011; VPU and VGT from Feb 2004) are stored as null.
 
 ### Date Range Policy
 
@@ -172,7 +193,7 @@ The main optimizer supports both:
 - **Max Allocation / Ticker** — caps concentration
 - **Min Allocation / Selected Ticker** — prevents selected ETFs from being ignored when set above `0%`
 
-The minimum-allocation control applies only to the **main optimizer**. The rolling optimizer still uses only the maximum-allocation cap.
+The minimum-allocation control applies only to the **main optimizer**. The rolling optimizer and the walk-forward simulation use only the maximum-allocation cap.
 
 ### In-Sample vs Out-of-Sample
 
@@ -181,6 +202,7 @@ The main backtest period and the optimizer training period are intentionally sep
 - The main `Start Month/Year` defines the portfolio evaluation period shown in charts and tables
 - `Optimizer Start` plus `Optimization Window` define the in-sample range used for optimization scoring
 - This makes it possible to optimize on a later subset of history and then inspect how the resulting allocation behaves on the broader backtest window
+- The **Walk-Forward tab** automates this discipline: every allocation it holds was optimized only on data available before the hold period began
 
 ### Overfitting Risk
 
