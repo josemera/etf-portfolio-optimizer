@@ -53,9 +53,11 @@ Use **↺ Reset to Equal Weights** at any time to restore equal weighting across
 
 Use the chart tabs:
 
-- **Growth Chart** — cumulative dollar value over time
+- **Growth Chart** — cumulative dollar value over time, with a **Linear / Log** y-axis toggle (log spreads out the slower ETFs that a linear axis crushes against the bottom, and turns equal percentage moves into equal vertical distances)
 - **Annual Returns** — calendar-year return bars for invested ETFs
 - **% Gains** — all invested ETFs and the portfolio normalized to 0% at the selected start date
+
+The Linear/Log toggle appears on the Growth tab only — the other two views carry negative values, which a log axis can't plot. Your choice is remembered when you switch away and back.
 
 Use the tables:
 
