@@ -9,7 +9,6 @@ SPEC.md
 
 # Node
 node_modules/
-package-lock.json
 
 # MCP config
 .mcp.json
