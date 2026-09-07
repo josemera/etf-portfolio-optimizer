@@ -3160,11 +3160,20 @@ function renderMainChart(growthRows, annualRows, active){
     });
   } else if(currentTab === "gains"){
     const startRow = growthRows[0];
+    // Linear: plot gain % (starts at 0). Log: plot ratio×100 (starts at 100, always > 0).
     const toGainPct = (row, key) => startRow[key] > 0 ? (row[key] / startRow[key] - 1) * 100 : 0;
+    const toGainIdx = (row, key) => startRow[key] > 0 ? (row[key] / startRow[key]) * 100 : 100;
+    const dataFn    = mainLogScale ? toGainIdx : toGainPct;
+    // Tick label: log mode shows ratio×100 value, rendered as gain % (subtract 100).
+    const gainTickFmt = v => {
+      if (!(v > 0)) return "";
+      const g = Math.round(v - 100);
+      return (g >= 0 ? "+" : "") + g + "%";
+    };
     mainChart = new Chart(ctx, {type:"line",
       data:{labels: growthRows.map(r => r.label), datasets:[
-        ...active.map(t => ({label:t, data:growthRows.map(r => toGainPct(r,t)), borderColor:COLORS[t], backgroundColor:"transparent", borderWidth:1.5, pointRadius:0, tension:0.3})),
-        {label:"Portfolio", data:growthRows.map(r => toGainPct(r,"Portfolio")), borderColor:"#fff", backgroundColor:"transparent", borderWidth:2, pointRadius:0, borderDash:[6,3], tension:0.3}
+        ...active.map(t => ({label:t, data:growthRows.map(r => dataFn(r,t)), borderColor:COLORS[t], backgroundColor:"transparent", borderWidth:1.5, pointRadius:0, tension:0.3})),
+        {label:"Portfolio", data:growthRows.map(r => dataFn(r,"Portfolio")), borderColor:"#fff", backgroundColor:"transparent", borderWidth:2, pointRadius:0, borderDash:[6,3], tension:0.3}
       ]},
       options:{responsive:true, maintainAspectRatio:false, interaction:{mode:"index", intersect:false},
         plugins:{legend:{labels:{color:"#9ca3af", boxWidth:12, font:{size:11}}},
@@ -3176,7 +3185,7 @@ function renderMainChart(growthRows, annualRows, active){
             titleColor:"#d1d5db",
             bodyColor:"#fff",
             callbacks:{
-              label:c => ` ${c.dataset.label}: ${fmtP(c.parsed.y,true)}`,
+              label:c => ` ${c.dataset.label}: ${fmtP(mainLogScale ? c.parsed.y - 100 : c.parsed.y, true)}`,
               labelColor:c => ({
                 borderColor: c.dataset.borderColor,
                 backgroundColor: c.dataset.borderColor,
@@ -3186,7 +3195,9 @@ function renderMainChart(growthRows, annualRows, active){
           }},
         scales:{
           x:{ticks:{color:"#6b7280", font:{size:10}, maxTicksLimit:15, maxRotation:45}, grid:{color:"#181c23"}},
-          y:{ticks:{color:"#6b7280", font:{size:11}, callback:v => v.toFixed(0)+"%"}, grid:{color:"#181c23"}}
+          y:{type: mainLogScale ? "logarithmic" : "linear",
+             ticks:{color:"#6b7280", font:{size:11}, callback: mainLogScale ? gainTickFmt : v => v.toFixed(0)+"%"},
+             grid:{color:"#181c23"}}
         }}
     });
   } else {
@@ -3291,11 +3302,12 @@ function switchTab(tab, btn){
   update();
 }
 
-// Log scale only makes sense for the Growth tab — Annual and % Gains both carry
-// negative values, so the toggle is hidden (state is kept for the trip back).
+// Log scale works for Growth (dollar values always > 0) and % Gains (plotted as
+// ratio×100 starting at 100, so also always > 0). Hidden only on Annual, which
+// has genuine negative values (negative annual returns).
 function syncMainScaleToggle(){
   const toggle = document.getElementById("mainScaleToggle");
-  if(toggle) toggle.style.display = currentTab === "growth" ? "" : "none";
+  if(toggle) toggle.style.display = (currentTab === "growth" || currentTab === "gains") ? "" : "none";
 }
 
 function setMainLogScale(isLog, btn){
