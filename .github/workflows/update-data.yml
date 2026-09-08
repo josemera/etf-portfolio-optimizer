@@ -21,7 +21,7 @@ jobs:
 
       - run: npm ci
 
-      - run: node scripts/update-data.js
+      - run: node scripts/update-data.js --refresh-all
 
       - name: Commit and push if data changed
         run: |
