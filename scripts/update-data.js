@@ -21,7 +21,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT  = join(__dirname, '..');
 const TICKERS_FILE = join(REPO_ROOT, 'data', 'tickers.txt');
 const JSON_FILE    = join(REPO_ROOT, 'data', 'monthly_returns.json');
-const HTML_FILE    = join(REPO_ROOT, 'index.html');
 const DATA_START   = '2004-01';
 
 // ── CLI args ──────────────────────────────────────────────────────────────────
@@ -181,74 +180,6 @@ function buildPayload(sparse, throughMonth) {
   };
 }
 
-// ── index.html patching ───────────────────────────────────────────────────────
-const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun',
-                     'Jul','Aug','Sep','Oct','Nov','Dec'];
-
-/** Format one ticker's return array in the same style as the existing HTML. */
-function formatReturnsArray(values, startYear) {
-  const lines = [];
-  const total = values.length;
-  let idx = 0;
-  let year = startYear;
-
-  while (idx < total) {
-    const count = Math.min(12, total - idx);
-    const chunk = values.slice(idx, idx + count);
-    const parts = chunk.map(v =>
-      v === null ? 'null' : v.toFixed(2).padStart(6, ' ')
-    );
-    const trailingComma = idx + count < total ? ',' : '';
-    lines.push(`    /* ${year} */ ${parts.join(', ')}${trailingComma}`);
-    idx += count;
-    year++;
-  }
-  return lines.join('\n');
-}
-
-function patchHtml(payload) {
-  let html = readFileSync(HTML_FILE, 'utf8');
-  const { returns, endYear, endMonth, numMonths } = payload;
-  const monthLabel = MONTH_NAMES[endMonth - 1];
-  const fetchedAt  = `${endYear}-${String(endMonth).padStart(2, '0')}`;
-
-  // Patch scalar constants (handles both old and new names on first run)
-  html = html
-    .replace(
-      /const (?:DATA_END_YEAR|BUNDLED_END_YEAR) = \d+;/,
-      `const BUNDLED_END_YEAR = ${endYear};`
-    )
-    .replace(
-      /const (?:DATA_END_MONTH|BUNDLED_END_MONTH) = \d+;/,
-      `const BUNDLED_END_MONTH = ${endMonth};`
-    )
-    .replace(
-      /const (?:NUM_MONTHS|BUNDLED_NUM_MONTHS) = \d+;[^\n]*/,
-      `const BUNDLED_NUM_MONTHS = ${numMonths}; // Jan ${DATA_START.slice(0,4)} – ${monthLabel} ${endYear}`
-    )
-    .replace(
-      /const BUNDLED_FETCHED_AT = "[^"]*";/,
-      `const BUNDLED_FETCHED_AT = "${fetchedAt}";`
-    );
-
-  // Build the new BUNDLED_RETURNS block
-  const tickers = Object.keys(returns);
-  const body = tickers
-    .map(t => `  ${t}: [\n${formatReturnsArray(returns[t], +DATA_START.slice(0,4))}\n  ]`)
-    .join(',\n');
-  const newBlock = body
-    ? `const BUNDLED_RETURNS = {\n${body},\n};`
-    : `const BUNDLED_RETURNS = {};`;
-
-  // Replace old block (handles MONTHLY_RETURNS → BUNDLED_RETURNS on first run)
-  html = html.replace(
-    /const (?:MONTHLY_RETURNS|BUNDLED_RETURNS) = \{[\s\S]*?\n\};/,
-    newBlock
-  );
-
-  writeFileSync(HTML_FILE, html, 'utf8');
-}
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   const tickers     = loadTickers();
@@ -306,8 +237,6 @@ async function main() {
 
   const payload = buildPayload(sparseWithData, throughMonth);
   writeFileSync(JSON_FILE, JSON.stringify(payload, null, 2), 'utf8');
-
-  patchHtml(payload);
 
   const totalValues = Object.values(payload.returns)
     .reduce((s, arr) => s + arr.filter(v => v !== null).length, 0);
