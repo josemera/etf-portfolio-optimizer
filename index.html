@@ -3989,9 +3989,9 @@ async function initData() {
   });
   const label = document.getElementById('dataStatusLabel');
   if (label) {
-    const parts = payload.fetchedAt ? payload.fetchedAt.slice(0, 7).split('-') : null;
-    const display = parts ? `${MONTH_NAMES[parseInt(parts[1], 10) - 1]} ${parts[0]}` : '—';
-    label.textContent = `Data: ${display}`;
+    // Show the last month covered, not the fetch date — a September fetch only contains data through August
+    label.textContent = `Data through ${DISPLAY_END_LABEL}`;
+    if (payload.fetchedAt) label.title = `Last updated ${payload.fetchedAt.slice(0, 10)}`;
   }
 }
 

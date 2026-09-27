@@ -180,7 +180,7 @@ Monthly total returns include price appreciation and dividends reinvested, sourc
 ### Date Range Policy
 
 - The dataset starts at **Jan 2004** (`DATA_START_YEAR`)
-- It currently ends at **Aug 2026**; the header's **Data:** label shows when it was last fetched, and the footnote shows the covered range
+- It currently ends at **Aug 2026**; the header shows **Data through <month>** (hover it for the last fetch date), and the footnote shows the full covered range
 - Only **settled calendar months** are ever included — the pipeline waits 2 weekdays past month-end so early-month dividend adjustments have posted
 - A GitHub Actions workflow (`.github/workflows/update-data.yml`) refreshes `data/monthly_returns.json` on the 5th of each month; `npm run update-data` does the same locally (see [Updating & Validating Data](#updating--validating-data))
 
