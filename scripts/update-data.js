@@ -97,14 +97,20 @@ function indexToMonth(i) {
 }
 
 // ── Tickers ───────────────────────────────────────────────────────────────────
-function loadTickers() {
-  if (TICKER_OVERRIDE?.length) {
-    return [...new Set(TICKER_OVERRIDE.map(t => t.toUpperCase()))];
-  }
+/** The universe written to the JSON store — always data/tickers.txt. */
+function loadUniverse() {
   return readFileSync(TICKERS_FILE, 'utf8')
     .split('\n')
     .map(l => l.trim().toUpperCase())
     .filter(l => l && !l.startsWith('#'));
+}
+
+/** The tickers to fetch this run — --ticker narrows this, not the universe. */
+function loadFetchTickers(universe) {
+  if (TICKER_OVERRIDE?.length) {
+    return [...new Set(TICKER_OVERRIDE.map(t => t.toUpperCase()))];
+  }
+  return universe;
 }
 
 // ── Persistent JSON store ─────────────────────────────────────────────────────
@@ -182,14 +188,19 @@ function buildPayload(sparse, throughMonth) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  const tickers     = loadTickers();
+  const universe     = loadUniverse();
+  const fetchTickers = loadFetchTickers(universe);
+  // --ticker symbols not yet in tickers.txt are appended so their data isn't discarded
+  const tickers      = [...new Set([...universe, ...fetchTickers])];
   const throughMonth = defaultThroughMonth();
   console.log(`Updating through: ${throughMonth}`);
 
-  const sparse  = REFRESH_ALL ? {} : loadSparse();
+  // --refresh-all clears only the tickers being fetched; everything else is preserved
+  const sparse  = loadSparse();
+  if (REFRESH_ALL) fetchTickers.forEach(t => delete sparse[t]);
   const updated = [];
 
-  for (const ticker of tickers) {
+  for (const ticker of fetchTickers) {
     const existing        = sparse[ticker] ?? {};
     const existingMonths  = Object.keys(existing).sort();
     const latestExisting  = existingMonths.at(-1);
@@ -220,6 +231,13 @@ async function main() {
   if (updated.length === 0 && process.exitCode !== 1) {
     console.log('Everything already up to date — no changes written.');
     return;
+  }
+
+  for (const t of tickers.filter(t => !fetchTickers.includes(t))) {
+    const latest = Object.keys(sparse[t] ?? {}).sort().at(-1);
+    if (latest && latest < throughMonth) {
+      console.warn(`  ${t}: not fetched this run and only current through ${latest} — trailing months will be null`);
+    }
   }
 
   // Only include tickers that have data

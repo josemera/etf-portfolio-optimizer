@@ -1813,7 +1813,7 @@
         </div>
       </section>
 
-      <p class="footnote">Monthly total returns including dividends reinvested (Jan 2012&ndash;Mar 2026). Data sourced from Yahoo Finance adjusted close prices. Past performance does not guarantee future results. Not financial advice.</p>
+      <p class="footnote">Monthly total returns including dividends reinvested (<span id="footnoteRange">Jan 2004</span>). Data sourced from Yahoo Finance adjusted close prices. Past performance does not guarantee future results. Not financial advice.</p>
     </aside>
   </div>
 </div>
@@ -1919,19 +1919,27 @@ const ETF_NAMES = {
   VGT:  { name: "Vanguard Information Technology",  sub: "Pure US tech sector" },
   XLE:  { name: "Energy Select Sector SPDR",        sub: "US energy producers \u00b7 ~3.5% yield" },
   DVY:  { name: "iShares Select Dividend ETF", sub: "High-dividend US stocks · ~3.5% yield" },
+  IYT:  { name: "iShares US Transportation ETF",    sub: "Airlines, rail, trucking \u00b7 cyclical" },
+  BND:  { name: "Vanguard Total Bond Market ETF",   sub: "US investment-grade bonds \u00b7 ~3.5% yield" },
+  VTWO: { name: "Vanguard Russell 2000 ETF",        sub: "US small-cap stocks" },
+  IYJ:  { name: "iShares US Industrials ETF",       sub: "US industrial sector" },
 };
-const TICKERS = ["SCHD","VTI","QQQ","IVV","VPU","IYF","SMH","VGT","XLE","DVY"];
+const TICKERS = ["SCHD","VTI","QQQ","IVV","VPU","IYF","SMH","VGT","XLE","DVY","IYT","BND","VTWO","IYJ"];
 const COLORS  = {
   SCHD:"#22c55e", VTI:"#3b82f6",  QQQ:"#a855f7",  IVV:"#06b6d4",
   VPU:"#14b8a6",  IYF:"#eab308",  SMH:"#ef4444",  VGT:"#8b5cf6",
-  XLE:"#f97316",  DVY:"#84cc16"
+  XLE:"#f97316",  DVY:"#84cc16",  IYT:"#f472b6",  BND:"#cbd5e1",
+  VTWO:"#6366f1", IYJ:"#b45309"
 };
 // ETFs whose first Yahoo Finance data month is after DATA_START.
 // Only entries needed for tickers with gaps; others are fully available from Jan 2004.
 const ETF_INCEPTION = {
-  SCHD: { year: 2011, month: 10 }, // Oct 2011
+  SCHD: { year: 2011, month: 11 }, // Nov 2011 — fund launched Oct 2011; first full-month return is Nov
   VPU:  { year: 2004, month: 2 },  // Feb 2004 — Jan 2004 return is null
   VGT:  { year: 2004, month: 2 },  // Feb 2004 — Jan 2004 return is null
+  IYT:  { year: 2004, month: 2 },  // Feb 2004 — Jan 2004 return is null
+  BND:  { year: 2007, month: 5 },  // May 2007 — fund launched Apr 2007
+  VTWO: { year: 2010, month: 10 }, // Oct 2010 — fund launched Sep 2010
 };
 const DATA_START_YEAR = 2004;
 const DATA_START_MONTH = 1;
@@ -3969,6 +3977,8 @@ async function initData() {
   MONTHLY_RETURNS  = payload.returns;
   LAST_FULL_YEAR   = DATA_END_MONTH === 12 ? DATA_END_YEAR : DATA_END_YEAR - 1;
   DISPLAY_END_LABEL = `${MONTH_NAMES[DATA_END_MONTH - 1]} ${DATA_END_YEAR}`;
+  document.getElementById('footnoteRange').textContent =
+    `${MONTH_NAMES[DATA_START_MONTH - 1]} ${DATA_START_YEAR}\u2013${DISPLAY_END_LABEL}`;
   TICKERS.forEach(t => {
     CUM[t] = new Float64Array(NUM_MONTHS + 1);
     CUM[t][0] = 1.0;

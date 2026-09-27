@@ -1,6 +1,6 @@
 # Portfolio Backtest & Optimizer
 
-A self-contained browser tool for backtesting ETF portfolios, selecting an ETF universe visually, exploring the efficient frontier, running rolling-window optimization across historical market regimes, and walk-forward testing the optimizer out-of-sample. No server required; open the HTML file locally and everything runs in-browser off the bundled data (an optional local server enables live Yahoo Finance refresh — see [Running the Tool](#running-the-tool)).
+A self-contained browser tool for backtesting ETF portfolios, selecting an ETF universe visually, exploring the efficient frontier, running rolling-window optimization across historical market regimes, and walk-forward testing the optimizer out-of-sample. Everything runs in-browser off a monthly return dataset (`data/monthly_returns.json`) that a scheduled GitHub Actions job keeps current — any static file server will do (see [Running the Tool](#running-the-tool)).
 
 ---
 
@@ -18,10 +18,14 @@ A self-contained browser tool for backtesting ETF portfolios, selecting an ETF u
 | VGT | Vanguard Information Technology ETF | Pure US tech sector |
 | XLE | Energy Select Sector SPDR | Energy producers · ~3.5% yield |
 | DVY | iShares Select Dividend ETF | High-dividend US stocks · ~3.5% yield |
+| IYT | iShares US Transportation ETF | Airlines, rail, trucking · cyclical |
+| BND | Vanguard Total Bond Market ETF | US investment-grade bonds · ~3.5% yield |
+| VTWO | Vanguard Russell 2000 ETF | US small-cap stocks |
+| IYJ | iShares US Industrials ETF | Industrial sector |
 
-The app's bundled monthly total return data covers **Jan 2004-Apr 2026** (268 months per ETF).
+The app's monthly total return data (`data/monthly_returns.json`) covers **Jan 2004-Aug 2026** (272 months per ETF).
 
-**Not every ETF has data for the full range.** Most of the universe has complete Yahoo Finance history from Jan 2004, but SCHD's first data month is **Oct 2011**, and VPU and VGT's first monthly return is **Feb 2004** — earlier months are stored as null and treated as unavailable. When the selected backtest start date predates an ETF's first data month, the app automatically deselects that ETF (its card turns amber); it becomes selectable again once the start date moves past its inception. The default backtest start is **Jan 2012**, at which point all 10 ETFs are available.
+**Not every ETF has data for the full range.** Most of the universe has complete Yahoo Finance history from Jan 2004, but several ETFs start later: BND's first monthly return is **May 2007**, VTWO's is **Oct 2010**, SCHD's is **Nov 2011**, and VPU, VGT and IYT's is **Feb 2004** — earlier months are stored as null and treated as unavailable. When the selected backtest start date predates an ETF's first data month, the app automatically deselects that ETF (its card turns amber); it becomes selectable again once the start date moves past its inception. The default backtest start is **Jan 2012**, at which point all 14 ETFs are available.
 
 ---
 
@@ -29,7 +33,7 @@ The app's bundled monthly total return data covers **Jan 2004-Apr 2026** (268 mo
 
 ### 1. Build the ETF Universe
 
-1. Set the **Start Month/Year** for the backtest period (selectable back to Jan 2004; defaults to Jan 2012). Starting before Oct 2011 auto-deselects SCHD, which has no earlier data; starting at Jan 2004 also auto-deselects VPU and VGT, whose first monthly return is Feb 2004.
+1. Set the **Start Month/Year** for the backtest period (selectable back to Jan 2004; defaults to Jan 2012). Starting before Nov 2011 auto-deselects SCHD, before Oct 2010 also VTWO, and before May 2007 also BND, since none has earlier data; starting at Jan 2004 also auto-deselects VPU, VGT and IYT, whose first monthly return is Feb 2004.
 2. Click ETF cards to **select or deselect** the universe you want the backtest and optimizer to use.
 3. At least **2 ETFs must remain selected**. Deselecting below that is blocked.
 4. Any selection change resets the portfolio to **equal weights** across the selected ETFs.
@@ -153,7 +157,7 @@ Controls:
 - **Risk slider `w`** and **Max Allocation / Ticker** — same semantics as the other optimizers
 - **Lookback Window** — training length per step
 - **Universe Mode**:
-  - **Fixed** (default) — the simulation starts at the first January where **every** selected ETF has full lookback history (all 10 selected with a 60-month lookback → Jan 2017). The universe is constant across the curve, so results are directly comparable.
+  - **Fixed** (default) — the simulation starts at the first January where **every** selected ETF has full lookback history (all 14 selected with a 60-month lookback → Jan 2017). The universe is constant across the curve, so results are directly comparable.
   - **Dynamic** — starts earlier, at the first January where **at least 2** selected ETFs have full lookback history; ETFs join the universe as their history matures (flagged with a vertical "enters universe" marker on the chart and a per-step universe count in the table). If another ETF's history would mature mid-hold-year, the start is rounded forward to the next January so each step's universe is stable (e.g. with SCHD deselected and a 60-month lookback, Feb 2009 is the first feasible month; the run anchors at Jan 2010).
 - **Benchmarks** (all on by default; checkboxes only toggle display):
   - **Equal weight, annual rebalance** — reset to equal weights at each step
@@ -163,7 +167,7 @@ Controls:
 
 Outputs: the equity-curve chart (linear/log toggle, $100K normalized), a summary table (CAGR, max drawdown, score, final value — sorted by score) with the **average one-way turnover per rebalance**, and a per-step table showing each year's training window, eligible universe size, chosen allocation, hold-period return, and running value. The final year is truncated at the last data month and labeled *(partial)*.
 
-**Expect the walk-forward strategy to land below equal weight.** On the bundled data (Jan 2017–Apr 2026, `w=1`, 60-month lookback) walk-forward re-optimization scores ≈ 0.55 versus ≈ 0.77 for annually rebalanced equal weight, while the naive momentum rotation scores ≈ 1.77. That is the point of the tab: the optimizer describes the past; it does not predict. The optimizer is stochastic, so results vary slightly between runs.
+**Expect the walk-forward strategy to land below equal weight.** With all 14 ETFs selected (Jan 2017–Aug 2026, `w=1`, 60-month lookback) walk-forward re-optimization scores ≈ 0.53 versus ≈ 0.68 for annually rebalanced equal weight, while the naive momentum rotation scores ≈ 1.88. That is the point of the tab: the optimizer describes the past; it does not predict. The optimizer is stochastic, so results vary slightly between runs.
 
 ---
 
@@ -171,14 +175,14 @@ Outputs: the equity-curve chart (linear/log toggle, $100K normalized), a summary
 
 ### Return Data
 
-Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. The bundled dataset contains **268 monthly points per ETF** (Jan 2004-Apr 2026); months before an ETF's first data month (SCHD from Oct 2011; VPU and VGT from Feb 2004) are stored as null.
+Monthly total returns include price appreciation and dividends reinvested, sourced from Yahoo Finance adjusted close prices. The dataset contains **272 monthly points per ETF** (Jan 2004-Aug 2026); months before an ETF's first data month (SCHD from Nov 2011; VTWO from Oct 2010; BND from May 2007; VPU, VGT and IYT from Feb 2004) are stored as null.
 
 ### Date Range Policy
 
-- The bundled dataset starts at **Jan 2004** (`DATA_START_YEAR`)
-- The bundled snapshot currently ends at **Apr 2026** (last fetch: April 2026)
-- Only **closed calendar months** are ever included — the data pipeline fetches through the last completed month
-- The bundle can be brought current with `npm run update-data` (rewrites `data/monthly_returns.json` and patches `BUNDLED_RETURNS` in `index.html`) or, in the browser, with the in-app **↻ Refresh** button (stores updates in localStorage)
+- The dataset starts at **Jan 2004** (`DATA_START_YEAR`)
+- It currently ends at **Aug 2026**; the header's **Data:** label shows when it was last fetched, and the footnote shows the covered range
+- Only **settled calendar months** are ever included — the pipeline waits 2 weekdays past month-end so early-month dividend adjustments have posted
+- A GitHub Actions workflow (`.github/workflows/update-data.yml`) refreshes `data/monthly_returns.json` on the 5th of each month; `npm run update-data` does the same locally (see [Updating & Validating Data](#updating--validating-data))
 
 ### Max Drawdown
 
@@ -234,32 +238,26 @@ Higher CAGR, higher tolerated volatility. SMH + QQQ or VGT. Lower `w` settings t
 
 ## Running the Tool
 
-No installation required for the core app. Open `index.html` in any modern browser:
+The app loads `data/monthly_returns.json` at startup, so it must be served over HTTP — opening `index.html` directly as a `file://` URL can't load the data. Any static file server works from the repo root, for example:
 
 ```bash
-open index.html
+npx http-server -p 8080 -c-1
 ```
+
+then open `http://localhost:8080`. Static hosting such as GitHub Pages works the same way.
 
 Chart rendering requires an internet connection to load Chart.js from the Cloudflare CDN (`cdnjs.cloudflare.com`). The core calculations still run locally in the browser.
 
-To enable the in-app **↻ Refresh** and **✓ Validate** buttons (live Yahoo Finance data), serve the app instead of opening it as a file:
-
-```bash
-npm start        # serves on http://localhost:3000 and proxies /api/yf/* to Yahoo Finance
-```
-
-Routing for live data: `file://` is blocked by Yahoo Finance (the app shows a clear error), `http://localhost` goes through the bundled `server.js` proxy, and `https://` hosting (e.g. GitHub Pages) routes through `corsproxy.io`. Refreshed data is persisted in localStorage on top of the bundled snapshot.
-
 ## Updating & Validating Data
 
-The canonical pipeline is Node-based (requires Node ≥ 20; `npm install` once for `yahoo-finance2`):
+The data pipeline is Node-based (requires Node ≥ 22; `npm install` once for `yahoo-finance2`):
 
 ```bash
-npm run update-data     # fetches Yahoo Finance, updates data/monthly_returns.json and patches BUNDLED_RETURNS in index.html
-npm run validate-data   # recomputes every bundled monthly return against Yahoo Finance
+npm run update-data     # fetches missing months from Yahoo Finance and rewrites data/monthly_returns.json
+npm run validate-data   # recomputes every stored monthly return against Yahoo Finance
 ```
 
-Both are anchored at **2004-01** and fetch only through the **last completed calendar month**. `update-data.js` supports `--refresh-all` and repeatable `--ticker` flags; `data/tickers.txt` defines the universe.
+Both are anchored at **2004-01** and fetch only through the **last settled calendar month**. `update-data.js` supports `--refresh-all` and repeatable `--ticker` flags; `data/tickers.txt` defines the universe. `--ticker` limits which tickers are fetched (combined with `--refresh-all`, it refetches only those from scratch) — every other ticker in the store is preserved.
 
 Validation recomputes each monthly return as:
 
@@ -269,15 +267,23 @@ AdjClose[m] / AdjClose[m-1] - 1
 
 and compares the rounded result against the stored value.
 
-### Legacy Python scripts
+### Adding an ETF
 
-The earlier Python tooling still exists but predates the Jan 2004 data extension — both scripts remain constrained to a **2012-01** start:
+`data/monthly_returns.json` is generated, and GitHub Actions also commits it to `main` every month. Treat it as a build output: regenerate it, never hand-merge it. This repo has a single developer, so the local copy is always authoritative. The workflow below never pulls — it regenerates the data locally and force-pushes over the Action's data commits.
 
-```bash
-python3 scripts/validate_monthly_returns.py                      # validate index.html data
-python3 scripts/validate_monthly_returns.py --source-format csv  # validate the CSV export
-python3 scripts/update_monthly_returns_csv.py                    # long-format CSV export (data/monthly_returns.csv) for future Supabase ingestion
-```
+1. Append the ticker to `data/tickers.txt`.
+2. Add it to `ETF_NAMES`, `TICKERS` and `COLORS` in `index.html`, plus an `ETF_INCEPTION` entry if its first monthly return is after Jan 2004 (so the app gates it by start date).
+3. Run `npm run update-data`. It fetches full history for the new ticker and brings every ticker up to the latest settled month, so the local JSON is at least as current as anything the Action has committed.
+4. Commit `data/tickers.txt`, `data/monthly_returns.json` and `index.html` together.
+5. Push. If the push is rejected because the Action committed data since your last push, force-push:
+
+   ```bash
+   git push --force
+   ```
+
+**Always run `npm run update-data` immediately before force-pushing** — the same applies to any push after the 5th of the month, not just ticker additions. Force-pushing an older JSON would roll the published data back until the Action's next run. Use plain `--force`, not `--force-with-lease`: the lease compares against the last fetch, and since this workflow never fetches, it would reject every push.
+
+The Action side is covered too: if your push lands while the Action is running, its push is rejected and it regenerates on top of your `main`, keeping your changes. It also fails loudly if `data/tickers.txt` and `TICKERS` in `index.html` ever disagree. Small ±0.01 rounding differences between your data and the Action's are harmless and even out on the next monthly `--refresh-all` run.
 
 ---
 

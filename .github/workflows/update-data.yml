@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write
 
+# Never let two runs race each other (e.g. a manual dispatch during the scheduled run)
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -21,12 +26,48 @@ jobs:
 
       - run: npm ci
 
+      - name: Check tickers.txt matches TICKERS in index.html
+        run: |
+          node -e '
+            const fs = require("fs");
+            const file = fs.readFileSync("data/tickers.txt", "utf8").split("\n")
+              .map(l => l.trim().toUpperCase()).filter(l => l && !l.startsWith("#"));
+            const m = fs.readFileSync("index.html", "utf8").match(/const TICKERS\s*=\s*(\[[^\]]*\])/);
+            if (!m) { console.error("TICKERS not found in index.html"); process.exit(1); }
+            const app = JSON.parse(m[1]);
+            const missing = app.filter(t => !file.includes(t)), extra = file.filter(t => !app.includes(t));
+            if (missing.length || extra.length) {
+              console.error(`Ticker mismatch — in index.html only: [${missing}]; in tickers.txt only: [${extra}]`);
+              process.exit(1);
+            }
+            console.log(`OK: ${app.length} tickers in sync.`);
+          '
+
       - run: node scripts/update-data.js --refresh-all
 
+      # monthly_returns.json is generated, so a push rejected because main moved
+      # (e.g. a ticker was added meanwhile) is resolved by regenerating on top of
+      # the latest main — never by merging or rebasing the JSON.
       - name: Commit and push if data changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          MSG="chore: update ETF data $(date +'%Y-%m')"
+
           git add data/monthly_returns.json
-          git diff --staged --quiet || git commit -m "chore: update ETF data $(date +'%Y-%m')"
-          git push
+          if git diff --staged --quiet; then echo "No data changes."; exit 0; fi
+          git commit -m "$MSG"
+
+          for attempt in 1 2 3; do
+            git push && exit 0
+            echo "Push rejected — main moved. Regenerating on latest main (attempt $attempt)…"
+            git fetch origin main
+            git reset --hard origin/main
+            npm ci
+            node scripts/update-data.js --refresh-all
+            git add data/monthly_returns.json
+            if git diff --staged --quiet; then echo "Latest main already has current data."; exit 0; fi
+            git commit -m "$MSG"
+          done
+          echo "Could not push after 3 attempts."
+          exit 1
